@@ -1,0 +1,323 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZRFI_INV_OUTST_02_07_TOP
+*&---------------------------------------------------------------------*
+*||Soc by Satyen Trivedi || Neeki Govani|| Devid-4884 || 27 -03-2024  || ATDK997901 || Value Mismatch Issue
+*||Soc by Jash Rajpara   || Neeki Govani|| Devid-5628 || 01-10-2024   || ATDK9A08RG || 3 Columns Add For Export Sales
+
+*  Type decleration
+TABLES : BSID.
+TYPES: BEGIN OF TY_BSID,
+         BUKRS TYPE BUKRS,  "CHAR 4 Company Code
+         KUNNR TYPE KUNNR,  "CHAR 10  Customer Number
+         UMSKS TYPE UMSKS,  "CHAR 1 Special G/L Transaction Type
+         UMSKZ TYPE UMSKZ,  "CHAR 1 Special G/L Indicator
+         AUGDT TYPE AUGDT,  "DATS 8 Clearing Date
+         AUGBL TYPE AUGBL,  "CHAR 10  Document Number of the Clearing Document
+         ZUONR TYPE DZUONR, "CHAR 18  Assignment number
+         GJAHR TYPE GJAHR,  "NUMC 4 Fiscal Year
+         BELNR TYPE BELNR_D,  "CHAR 10  Accounting Document Number
+         BUZEI TYPE BUZEI,  "NUMC 3 Number of Line Item Within Accounting Document
+         BUDAT TYPE	BUDAT,   "Posting Date in the Document
+         BLDAT TYPE BLDAT,  "Billing Date
+         CPUDT TYPE CPUDT,  "Day On Which Accounting Document Was Entered
+         ZFBDT TYPE BUDAT, "Base line date
+         WAERS TYPE WAERS,  "CUKY 5 Currency Key
+         XBLNR TYPE XBLNR1, "CHAR 16  Reference Document Number
+         BLART TYPE BLART,  "Document Type
+         SHKZG TYPE SHKZG,  "CHAR 1 Debit/Credit Indicator
+         DMBTR TYPE DMBTR,  "CURR 13  Amount in local currency
+         WRBTR TYPE WRBTR,  "CURR 13  Amount in document currency
+         ZTERM TYPE DZTERM, "Terms of Payment Key
+         REBZG TYPE REBZG,  "CHAR 10  Document no. of the invoice to which the transaction belongs
+         REBZJ TYPE REBZJ,  "Numc4
+         PRCTR TYPE PRCTR,  "CHAR 10  Profit Center
+         ZBD3T TYPE BSID-ZBD3T,
+         ZBD2T TYPE BSID-ZBD2T,
+         ZBD1T TYPE BSID-ZBD1T,
+         SGTXT TYPE SGTXT,
+*         ZUONR TYPE DZUONR,
+       END OF TY_BSID,
+       TY_T_BSID TYPE STANDARD TABLE OF TY_BSID INITIAL SIZE 0,
+       BEGIN OF TY1_BSID,
+         BUKRS TYPE BUKRS,  "CHAR 4 Company Code
+         KUNNR TYPE KUNNR,  "CHAR 10  Customer Number
+         UMSKS TYPE UMSKS,  "CHAR 1 Special G/L Transaction Type
+         UMSKZ TYPE UMSKZ,  "CHAR 1 Special G/L Indicator
+         AUGDT TYPE AUGDT,  "DATS 8 Clearing Date
+         AUGBL TYPE AUGBL,  "CHAR 10  Document Number of the Clearing Document
+         ZUONR TYPE DZUONR, "CHAR 18  Assignment number
+         GJAHR TYPE GJAHR,  "NUMC 4 Fiscal Year
+         BELNR TYPE BELNR_D,  "CHAR 10  Accounting Document Number
+         BUZEI TYPE BUZEI,  "NUMC 3 Number of Line Item Within Accounting Document
+         DMBTR TYPE DMBTR,
+         REBZG TYPE REBZG,
+         REBZJ TYPE REBZJ,
+       END OF TY1_BSID,
+       TY1_T_BSID TYPE STANDARD TABLE OF TY1_BSID INITIAL SIZE 0,
+
+*     ACDOCA
+       BEGIN OF TY_ACDOCA,
+         RBUKRS TYPE BUKRS,  "CHAR 4 0 Company Code
+         GJAHR  TYPE GJAHR,  "NUMC 4 0 Fiscal Year
+         BELNR  TYPE  BELNR_D,  "CHAR 10  0 Accounting Document Number
+         BUZEI  TYPE BUZEI,   "  NUMC  3 0 Number of Line Item Within Accounting Document
+         PRCTR  TYPE  PRCTR,  "CHAR 10  0 Profit Center
+         RACCT  TYPE RACCT,
+         BLDAT  TYPE BLDAT,
+         BSCHL  TYPE BSCHL,
+         REBZG  TYPE ACDOCA-REBZG,  "Added 4884
+       END OF TY_ACDOCA,
+       TY_T_ACDOCA TYPE STANDARD TABLE OF TY_ACDOCA INITIAL SIZE 0,
+       BEGIN OF TY_PRCTR,
+         PRCTR TYPE CEPCT-PRCTR,
+         KTEXT TYPE CEPCT-KTEXT,
+         LTEXT TYPE CEPCT-LTEXT,
+       END OF TY_PRCTR,
+       TY_T_CEPCT TYPE STANDARD TABLE OF TY_PRCTR INITIAL SIZE 0,
+*       BKPF
+       BEGIN OF TY_BKPF,
+         BUKRS TYPE BUKRS,  "CHAR 4 0 Company Code
+         BELNR TYPE BELNR_D,  "CHAR 10  0 Accounting Document Number
+         GJAHR TYPE  GJAHR,  "NUMC 4 0 Fiscal Year
+         AWKEY TYPE AWKEY,  "CHAR 20  0 Object key
+       END OF TY_BKPF,
+       TY_T_BKPF TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
+*        Final
+       BEGIN OF TY_FINAL,
+         BUKRS            TYPE BUKRS,  "CHAR 4 Company Code
+         KUNNR            TYPE KUNNR,  "CHAR 10  Customer Number
+         KNAME            TYPE CHAR80, "Customer name
+         PRCTR            TYPE PRCTR,  "Profit Center
+         RACCT            TYPE RACCT,  "Account Number "Added by Pratik 8.1.19
+         AWKEY            TYPE AWKEY, "CHAR 18  Assignment number
+         BELNR            TYPE BELNR_D,  "CHAR 10  Accounting Document Number
+         BSCHL            TYPE BSCHL,
+         WAERS            TYPE WAERS,  "CUKY 5 Currency Key
+         WRBTR            TYPE WRF_PPW_VALUE_MAX,   "Currency
+         DMBTR            TYPE WRF_PPW_VALUE_MAX,   "Currency
+         BUDAT            TYPE BUDAT, "Inv Date
+         BLDAT            TYPE BLDAT, "Document date  "Added by Pratik 8.1.19
+         CR_PRD           TYPE CHAR10,   "Cr Prd
+         DUE_DATE         TYPE DATUM, "Due Date
+         AMT_REL          TYPE WRF_PPW_VALUE_MAX,       "Amt realised
+         NET_OS           TYPE WRF_PPW_VALUE_MAX,      "Net OS
+         NOT_DUE          TYPE WRF_PPW_VALUE_MAX,       "Not due
+         OD_DAYS          TYPE CHAR15,                  "Number of Over due days
+         OD_DAYSDT        TYPE CHAR15,                  "Number of Over due days  Added by Shashank on 26th Nov 2019
+         AMT_OVD          TYPE WRF_PPW_VALUE_MAX,       "Amount over dues
+         INVREV           TYPE WRF_PPW_VALUE_MAX,       "Interest Receivable " Added by Shashank on 26th Nov 2019
+         LR_NO            TYPE TDLINE,                 "lr nUMBER
+         LR_DATE          TYPE TDLINE,                   "lR DATE
+         BRAND            TYPE BEZEI20,          "Brand des
+         KAM              TYPE BZTXT, "BZIRK,          "BZIRK
+         KAMNAME(132)     TYPE C,
+         MANAGER          TYPE BEZEI20,
+         PAY_TERMS        TYPE DZTERM_BEZ,
+         UMSKS            TYPE UMSKS,  "CHAR 1 Special G/L Transaction Type
+         UMSKZ            TYPE UMSKZ,  "CHAR 1 Special G/L Indicator
+         AUGDT            TYPE DATUM,  "DATS 8 Clearing Date
+         AUGBL            TYPE AUGBL,  "CHAR 10  Document Number of the Clearing Document
+         GJAHR            TYPE GJAHR,  "NUMC 4 Fiscal Year
+         BUZEI            TYPE BUZEI,  "NUMC 3 Number of Line Item Within Accounting Document
+*         BUDAT    TYPE BUDAT,   "Posting Date in the Document
+         CPUDT            TYPE CPUDT,  "Day On Which Accounting Document Was Entered
+         XBLNR            TYPE XBLNR1, "CHAR 16  Reference Document Number
+         REBZG            TYPE REBZG,  "CHAR 10  Document no. of the invoice to which the transaction belongs
+         BLART            TYPE BLART,
+*         XBLNR     TYPE XBLNR,
+         SGTXT            TYPE SGTXT,
+         ZUONR            TYPE DZUONR,
+         VTWEG            TYPE VTWEG,
+         SPART            TYPE SPART,
+         VKORG            TYPE VKORG,
+
+         KDMAT            TYPE KDMAT,
+         BSTKD            TYPE BSTKD,
+         IHREZ            TYPE IHREZ,
+
+         BSTDK            TYPE VBKD-BSTDK,  " PO Date
+         ZLOCN            TYPE VBAK-ZLOCN,  " Location
+*          ZUONR       TYPE BSEG-ZUONR,
+         LTEXT            TYPE CEPCT-LTEXT, " Profit Center Description"
+*         dtypr(2) TYPE
+         BZIRK            TYPE VBKD-BZIRK,  "Added by Jay Thakkar on 28th August, 2020
+         MATNR            TYPE VBRP-MATNR,  "Added by Jay Thakkar on 28th August, 2020
+         HWSTE            TYPE BSET-HWSTE,  "Added by Jay Thakkar on 20th November, 2020
+         KBETR            TYPE BSET-KBETR,  "Added by Jay Thakkar on 20th November, 2020
+         REGIO_TXT        TYPE VBRP-BZIRK_AUFT, " Added By Soham Upadhyay on Monday, June 14, 2021 16:49:24
+         KVGR1            TYPE VBAK-KVGR1,  "Added by Jay Thakkar on 14th July, 2021
+         WERKS            TYPE VBRP-WERKS,  "Added by Surbhi Dadhich
+         AGEING           TYPE CHAR20,      "Added by Basanta Sahu on 26.11.2021
+         DUE_PERT_MTH     TYPE P DECIMALS 2,
+         DUE_NEXT_MTH     TYPE P DECIMALS 2,
+         DUE_AFT_NEXT_MTH TYPE P DECIMALS 2,
+
+         SHP_TO_PARTY     TYPE KUNNR ,    "ADDED BY BASANTA 02.12.2022
+         ORT01            TYPE ORT01_GP,  "added by basnata 14.12.2022
+         NAME1            TYPE LFA1-NAME1, " SOC : 5113
+         SORTL            TYPE LFA1-SORTL, " SOC : 5113
+***         soc by jash rajpara dev id: 5628
+         WRBTR1           TYPE BSID-WRBTR,
+         NET_OS_DOC       TYPE BSID-WRBTR,
+         DIFFW            TYPE BSE_CLR-DIFFW,
+***         eoc by jash rajpara dev id: 5628
+       END OF TY_FINAL,
+       TY_T_FINAL TYPE STANDARD TABLE OF TY_FINAL INITIAL SIZE 0,
+*       KNA1
+       BEGIN OF TY_KNA1,
+         KUNNR TYPE KUNNR,  "CHAR 10  0 Customer Number
+         LAND1 TYPE  LAND1_GP, "CHAR 3 0 Country Key
+         NAME1 TYPE  NAME1_GP, "CHAR 35  0 Name 1
+         NAME2 TYPE NAME2_GP, ":CHAR  35  0 Name 2
+       END OF TY_KNA1,
+       TY_T_KNA1 TYPE HASHED TABLE OF TY_KNA1 WITH UNIQUE KEY KUNNR INITIAL SIZE 0,
+*        VBFA
+       BEGIN OF TY_VBFA,
+         VBELV   TYPE VBELN_VON,  "CHAR 10  0 Preceding sales and distribution document
+         POSNV   TYPE POSNR_VON,  "NUMC 6 0 Preceding item of an SD document
+         VBELN   TYPE VBELN_NACH, "CHAR 10  0 Subsequent sales and distribution document
+         VBTYP_V TYPE VBTYP_V,  "CHAR 1 0 Document category of preceding SD document
+       END OF TY_VBFA,
+       TY_T_VBFA TYPE STANDARD TABLE OF TY_VBFA INITIAL SIZE 0,
+*       VBAK
+       BEGIN OF TY_VBAK,
+         VBELN TYPE VBELN_VA, "CHAR 10  0 Sales Document
+         KVGR1 TYPE KVGR1,    "Brand
+         VKGRP TYPE VKGRP,    "For Payment Trem
+         VKBUR TYPE VKBUR,
+         ZLOCN TYPE VBAK-ZLOCN,
+       END OF TY_VBAK,
+       TY_T_VBAK TYPE STANDARD TABLE OF TY_VBAK INITIAL SIZE 0,
+*        Tax table of  VKGRP TVGRT
+       BEGIN OF TY_TVGRT,
+         VKGRP TYPE VKGRP,  "CHAR 3 0 Sales Group
+         BEZEI TYPE BEZEI20, "CHAR 20  0 Description
+       END OF TY_TVGRT,
+       TY_T_TVGRT TYPE STANDARD TABLE OF TY_TVGRT INITIAL SIZE 0,
+       BEGIN OF TY_TVKBT,
+         VKBUR TYPE VKBUR,
+         BEZEI TYPE BEZEI20, "CHAR 20  0 Description
+       END OF TY_TVKBT,
+       TY_T_TVKBT TYPE STANDARD TABLE OF TY_TVKBT INITIAL SIZE 0,
+*        Tax table for KVGR1
+       BEGIN OF TY_TVV1T,
+         KVGR1 TYPE KVGR1,  "CHAR 3 0 Brand
+         BEZEI TYPE  BEZEI20,  "CHAR 20  0 Description
+       END OF TY_TVV1T,
+       TY_T_TVV1T TYPE STANDARD TABLE OF TY_TVV1T INITIAL SIZE 0,
+*       VBRK
+       BEGIN OF TY_VBRK,
+         VBELN TYPE VBELN_VF, "CHAR 10  0 Billing Document
+         ZTERM TYPE DZTERM,   "Terms of Payment Key
+         VTWEG TYPE VTWEG,
+         SPART TYPE SPART,
+         VKORG TYPE VBRK-VKORG,
+       END OF TY_VBRK,
+       TY_T_VBRK TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0,
+*       VBKD
+       BEGIN OF TY_VBKD,
+         VBELN TYPE VBELN,  "CHAR 10  0 Sales and Distribution Document Number
+         POSNR TYPE POSNR,  "NUMC 6 0 Item number of the SD document
+         BZIRK TYPE BZIRK,  "CHAR 6 0 Sales district
+       END OF TY_VBKD,
+       TY_T_VBKD TYPE STANDARD TABLE OF TY_VBKD INITIAL SIZE 0,
+*       TVZBT
+       BEGIN OF TY_TVZBT,
+         ZTERM TYPE DZTERM,  "CHAR  4 0 Terms of Payment Key
+         SPRAS TYPE SPRAS,
+         VTEXT TYPE DZTERM_BEZ, "CHAR 30  0 Description of terms of payment
+       END OF TY_TVZBT,
+       TY_T_TVZBT TYPE STANDARD TABLE OF TY_TVZBT INITIAL SIZE 0,
+*       T052
+       BEGIN OF TY_T052,
+         ZTERM TYPE DZTERM,  "CHAR  4 0 Terms of Payment Key
+         ZTAGG TYPE DZTAGG_052, "NUMC 2 0 Day Limit
+         ZTAG1 TYPE  DZTAGE,
+         ZTAG2 TYPE  DZTAGE,
+         ZTAG3 TYPE  DZTAGE,
+       END OF TY_T052,
+       TY_T_T052 TYPE STANDARD TABLE OF TY_T052 INITIAL SIZE 0.
+
+TYPES : BEGIN OF TY_BKPF1,
+          BUKRS     TYPE BUKRS,
+          BELNR     TYPE BELNR_D,
+          GJAHR     TYPE GJAHR,
+          BUDAT     TYPE BUDAT,
+          XREVERSED TYPE XREVERSED,
+                                                            "BOC 4884
+          REBZG     TYPE ACDOCA-REBZG,
+          REBZJ     TYPE ACDOCA-REBZJ,
+          AUGDT     TYPE ACDOCA-AUGDT,
+                                                            "EOC 4884
+        END OF TY_BKPF1.
+DATA: GT_BKPF  TYPE TABLE OF TY_BKPF1,
+      GT_BKPFN TYPE TABLE OF TY_BKPF1, "Added 4884
+      GW_BKPF  TYPE TY_BKPF1.
+
+******************** SOC : 5113 ************************
+TYPES  : BEGIN OF TY_VBPA,
+           VBELN TYPE VBPA-VBELN,
+           PARVW TYPE VBPA-PARVW,
+           LIFNR TYPE VBPA-LIFNR,
+           NAME1 TYPE LFA1-NAME1,
+           SORTL TYPE LFA1-SORTL,
+         END OF TY_VBPA,
+         TY_T_VBPA TYPE STANDARD TABLE OF TY_VBPA INITIAL SIZE 0,
+         BEGIN OF TY_BSIDR,
+           BUKRS TYPE BSID-BUKRS,
+           BELNR TYPE BSID-BELNR,
+           GJAHR TYPE BSID-GJAHR,
+           REBZG TYPE BSID-REBZG,
+           DMBTR TYPE BSID-DMBTR,
+           WRBTR TYPE BSID-WRBTR,       "" added by jash rajpara dev id: 5628 dt: 09.09.24
+         END OF TY_BSIDR,
+         TY_T_BSIDR TYPE STANDARD TABLE OF TY_BSIDR INITIAL SIZE 0.
+DATA : IT_VBPA     TYPE TABLE OF TY_VBPA,
+       WA_VBPA     TYPE TY_VBPA,
+       IT_BSIDR    TYPE TABLE OF TY_BSIDR,
+       WA_BSIDR    TYPE TY_BSIDR,
+       GT_BSE_CLRR TYPE TABLE OF BSE_CLR,
+       GW_BSE_CLRR TYPE BSE_CLR.
+******************** EOC : 5113 ************************
+
+*       Data Decleration
+DATA:
+  GV_DATUM         TYPE DATUM,
+  GV_PRCTR         TYPE PRCTR,
+  GV_KUNNR         TYPE KUNNR,
+  GV_RACCT         TYPE RACCT,
+  GT_FINAL         TYPE STANDARD TABLE OF TY_FINAL INITIAL SIZE 0,
+  GT_FINAL1        TYPE STANDARD TABLE OF TY_FINAL,
+  GV_GRID_9002     TYPE REF TO CL_GUI_ALV_GRID,
+  GT_FIELDCAT_9002 TYPE LVC_T_FCAT,
+  GV_POS           TYPE SY-CUCOL,
+  GT_BSE           TYPE TABLE OF BSE_CLR,
+  GW_BSE           TYPE BSE_CLR,
+  LV_WRBTR         TYPE WRF_PPW_VALUE_MAX,
+  LV_DMBTR         TYPE WRF_PPW_VALUE_MAX,
+  LV_AMT_REL       TYPE WRF_PPW_VALUE_MAX,
+  LV_AMT_OVD       TYPE WRF_PPW_VALUE_MAX,
+  LV_NET_OS        TYPE WRF_PPW_VALUE_MAX,
+  LV_NOT_DUE       TYPE WRF_PPW_VALUE_MAX,
+  GV_BUKRS         TYPE BUKRS.
+
+DATA: LV_HWSTE         TYPE BSET-HWSTE,
+      LV_NEXTMONTH     TYPE SY-DATUM,
+      LV_AFT_NEXTMONTH TYPE SY-DATUM.
+
+DATA : IT_OUTSTAND_BI TYPE STANDARD TABLE OF ZSD_OUTSTAND_BI,  "Added by Surbhi Dadhich
+       WA_OUTSTAND_BI TYPE ZSD_OUTSTAND_BI. "Added by Surbhi Dadhich
+
+
+                                                            "BOc 4884
+TYPES : BEGIN OF TY_BKPFN,
+          BUKRS TYPE BKPF-BUKRS,
+          BELNR TYPE BKPF-BELNR,
+          GJAHR TYPE BKPF-GJAHR,
+          BLART TYPE BKPF-BLART,
+        END OF TY_BKPFN.
+
+DATA : GT_BKPFN1 TYPE TABLE OF TY_BKPFN,
+       GS_BKPFN1 TYPE TY_BKPFN.
+
+                                                            "Eoc 4884
