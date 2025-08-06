@@ -70,24 +70,19 @@ END-OF-SELECTION.
       DATA : ls_crm_os TYPE zcrm_os_integrat.
       DATA : ls_crm_os_old TYPE zcrm_os_int_old.
       DATA : lv_num TYPE numc7.
-      SELECT * INTO TABLE @DATA(lt_crm_os) FROM zcrm_os_integrat
-               WHERE dom_exp = 'DOM'.
-      SELECT * INTO TABLE @DATA(lt_crm_os_old) FROM zcrm_os_int_old
-               WHERE dom_exp = 'DOM'.
-      CLEAR : ls_crm_os_old.
+      SELECT sr_no manager brand kunnr kam reg tot_amt name prctr belnr blart bldat waers wrbtr dmbtr pay_terms due_date dom_exp key_date
+        FROM zcrm_os_integrat
+        INTO TABLE @DATA(lt_crm_os)
+        WHERE dom_exp = 'DOM'.
+      SELECT sr_no manager brand kunnr kam reg tot_amt name prctr belnr blart bldat waers wrbtr dmbtr pay_terms due_date dom_exp key_date
+        FROM zcrm_os_int_old
+        INTO TABLE @DATA(lt_crm_os_old)
+        WHERE dom_exp = 'DOM'.
 
-      LOOP AT lt_crm_os_old INTO ls_crm_os_old WHERE dom_exp = 'DOM'.
-        DELETE zcrm_os_int_old FROM ls_crm_os_old.
-        CLEAR : ls_crm_os_old.
-      ENDLOOP.
+      DELETE FROM zcrm_os_int_old WHERE dom_exp = 'DOM'.
+      INSERT zcrm_os_int_old FROM TABLE @lt_crm_os.
+      DELETE FROM zcrm_os_integrat WHERE dom_exp = 'DOM'.
 
-      CLEAR : ls_crm_os_old.
-      LOOP AT lt_crm_os INTO ls_crm_os WHERE dom_exp = 'DOM'.
-        MOVE-CORRESPONDING ls_crm_os TO ls_crm_os_old.
-        INSERT zcrm_os_int_old FROM ls_crm_os_old.
-        DELETE zcrm_os_integrat FROM ls_crm_os.
-        CLEAR : ls_crm_os.
-      ENDLOOP.
       CLEAR : lv_num.
       LOOP AT gt_final INTO DATA(ls_final).
         CLEAR : lv_num.
