@@ -80,6 +80,11 @@ TYPES: BEGIN OF TY_BSID,
          BELNR TYPE BELNR_D,  "CHAR 10  0 Accounting Document Number
          GJAHR TYPE  GJAHR,  "NUMC 4 0 Fiscal Year
          AWKEY TYPE AWKEY,  "CHAR 20  0 Object key
+         BUDAT TYPE BUDAT,
+         XREVERS TYPE XREVERS,
+         BLART TYPE BLART,
+         REBZG TYPE BELNR_D,
+         REBZJ TYPE GJAHR,
        END OF TY_BKPF,
        TY_T_BKPF TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
 *        Final
@@ -238,22 +243,6 @@ TYPES: BEGIN OF TY_BSID,
        END OF TY_T052,
        TY_T_T052 TYPE STANDARD TABLE OF TY_T052 INITIAL SIZE 0.
 
-TYPES : BEGIN OF TY_BKPF1,
-          BUKRS     TYPE BUKRS,
-          BELNR     TYPE BELNR_D,
-          GJAHR     TYPE GJAHR,
-          BUDAT     TYPE BUDAT,
-          XREVERSED TYPE XREVERSED,
-                                                            "BOC 4884
-          REBZG     TYPE ACDOCA-REBZG,
-          REBZJ     TYPE ACDOCA-REBZJ,
-          AUGDT     TYPE ACDOCA-AUGDT,
-                                                            "EOC 4884
-        END OF TY_BKPF1.
-DATA: GT_BKPF  TYPE TABLE OF TY_BKPF1,
-      GT_BKPFN TYPE TABLE OF TY_BKPF1, "Added 4884
-      GW_BKPF  TYPE TY_BKPF1.
-
 ******************** SOC : 5113 ************************
 TYPES  : BEGIN OF TY_VBPA,
            VBELN TYPE VBPA-VBELN,
@@ -291,7 +280,7 @@ DATA:
   GV_GRID_9002     TYPE REF TO CL_GUI_ALV_GRID,
   GT_FIELDCAT_9002 TYPE LVC_T_FCAT,
   GV_POS           TYPE SY-CUCOL,
-  GT_BSE           TYPE TABLE OF BSE_CLR,
+  GT_BSE           TYPE HASHED TABLE OF BSE_CLR WITH UNIQUE KEY BUKRS BELNR GJAHR BUZEI,
   GW_BSE           TYPE BSE_CLR,
   LV_WRBTR         TYPE WRF_PPW_VALUE_MAX,
   LV_DMBTR         TYPE WRF_PPW_VALUE_MAX,
@@ -310,14 +299,6 @@ DATA : IT_OUTSTAND_BI TYPE STANDARD TABLE OF ZSD_OUTSTAND_BI,  "Added by Surbhi 
 
 
                                                             "BOc 4884
-TYPES : BEGIN OF TY_BKPFN,
-          BUKRS TYPE BKPF-BUKRS,
-          BELNR TYPE BKPF-BELNR,
-          GJAHR TYPE BKPF-GJAHR,
-          BLART TYPE BKPF-BLART,
-        END OF TY_BKPFN.
-
-DATA : GT_BKPFN1 TYPE TABLE OF TY_BKPFN,
-       GS_BKPFN1 TYPE TY_BKPFN.
+DATA: gt_bkpf_ab TYPE HASHED TABLE OF ty_bkpf WITH UNIQUE KEY bukrs belnr gjahr.
 
                                                             "Eoc 4884

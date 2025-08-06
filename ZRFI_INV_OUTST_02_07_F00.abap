@@ -58,7 +58,7 @@ FORM SUB_TAB_SEL_FINAL_FILL .
         LW_BSAD         TYPE TY_BSID,
         LT1_BSID        TYPE STANDARD TABLE OF TY1_BSID INITIAL SIZE 0,
         LW1_BSID        TYPE TY1_BSID,
-        LT_ACDOCA       TYPE STANDARD TABLE OF TY_ACDOCA INITIAL SIZE 0,
+        LT_ACDOCA       TYPE HASHED TABLE OF TY_ACDOCA WITH UNIQUE KEY RBUKRS GJAHR BELNR BUZEI INITIAL SIZE 0,
         LW_ACDOCA       TYPE TY_ACDOCA,
         LT_ACDOCA_SORT  TYPE STANDARD TABLE OF TY_ACDOCA INITIAL SIZE 0,
         LT_CEPCT        TYPE STANDARD TABLE OF TY_PRCTR INITIAL SIZE 0,
@@ -67,19 +67,18 @@ FORM SUB_TAB_SEL_FINAL_FILL .
         LW_KNA1         TYPE TY_KNA1,
         LW_FINAL        TYPE TY_FINAL,
         LW_FINAL_PRE    TYPE TY_FINAL,
-        LT_VBFA         TYPE STANDARD TABLE OF TY_VBFA INITIAL SIZE 0,
-        LT_VBAK         TYPE STANDARD TABLE OF TY_VBAK INITIAL SIZE 0,
+        LT_VBFA         TYPE HASHED TABLE OF TY_VBFA WITH UNIQUE KEY VBELN INITIAL SIZE 0,
+        LT_VBAK         TYPE HASHED TABLE OF TY_VBAK WITH UNIQUE KEY VBELN INITIAL SIZE 0,
         LT_VBAK_SORT    TYPE STANDARD TABLE OF TY_VBAK INITIAL SIZE 0,
-        LT_VBKD         TYPE STANDARD TABLE OF TY_VBKD INITIAL SIZE 0,
+        LT_VBKD         TYPE HASHED TABLE OF TY_VBKD WITH UNIQUE KEY VBELN INITIAL SIZE 0,
         LT_TVZBT        TYPE STANDARD TABLE OF TY_TVZBT INITIAL SIZE 0,
         LT_TVV1T        TYPE STANDARD TABLE OF TY_TVV1T INITIAL SIZE 0,
         LT_TVGRT        TYPE STANDARD TABLE OF TY_TVGRT  INITIAL SIZE 0, "Manager Des
         LT_TVKBT        TYPE STANDARD TABLE OF TY_TVKBT  INITIAL SIZE 0, "Manager Des
-        LT_VBRK         TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0,  "Where document type is Non RV
-        LT_VBRK_RV      TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0, "All document type
+        LT_VBRK         TYPE HASHED TABLE OF TY_VBRK WITH UNIQUE KEY VBELN INITIAL SIZE 0,  "Where document type is Non RV
+        LT_VBRK_RV      TYPE HASHED TABLE OF TY_VBRK WITH UNIQUE KEY VBELN INITIAL SIZE 0, "All document type
         LT_VBRK_RV_SORT TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0,
         LT_BKPF         TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
-        LT_BKPF_SHORT   TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
         LT_T052         TYPE STANDARD TABLE OF TY_T052 INITIAL SIZE 0,
         LT_TVZBT_FI     TYPE STANDARD TABLE OF TY_TVZBT INITIAL SIZE 0.
 *   Slect the Open delivery till today
@@ -128,159 +127,210 @@ FORM SUB_TAB_SEL_FINAL_FILL .
            AND PRCTR IN S_PRCTR.
 
   IF LT_BSID IS NOT INITIAL.
-*   Fetching the data for due date calculation FI document Non RV
-    LT_BSID_SORT[] = LT_BSID[].
-    SORT LT_BSID_SORT BY ZTERM.
-    DELETE ADJACENT DUPLICATES FROM LT_BSID_SORT COMPARING ZTERM.
-    IF LT_BSID_SORT IS NOT INITIAL.
-*         Populating the short term des
-      SELECT ZTERM VTEXT
-      INTO TABLE  LT_TVZBT_FI
-      FROM TVZBT
-      FOR ALL ENTRIES IN LT_BSID
-      WHERE ZTERM = LT_BSID-ZTERM.
 
-      SELECT ZTERM ZTAGG ZTAG1 ZTAG2 ZTAG3
-      FROM T052
-      INTO TABLE LT_T052
-      FOR ALL ENTRIES IN LT_BSID_SORT
-      WHERE ZTERM = LT_BSID_SORT-ZTERM.
-      IF SY-SUBRC = 0.
+    TYPES: BEGIN OF ty_item_key,
+             bukrs TYPE bukrs,
+             gjahr TYPE gjahr,
+             belnr TYPE belnr_d,
+             buzei TYPE buzei,
+           END OF ty_item_key,
+           ty_t_item_key TYPE SORTED TABLE OF ty_item_key WITH UNIQUE KEY bukrs gjahr belnr buzei,
+           BEGIN OF ty_hdr_key,
+             bukrs TYPE bukrs,
+             belnr TYPE belnr_d,
+             gjahr TYPE gjahr,
+           END OF ty_hdr_key,
+           ty_t_hdr_key TYPE SORTED TABLE OF ty_hdr_key WITH UNIQUE KEY bukrs belnr gjahr.
+
+    DATA: lt_item_keys TYPE ty_t_item_key,
+          lt_hdr_keys  TYPE ty_t_hdr_key,
+          lt_all_hdr   TYPE ty_t_hdr_key,
+          lt_awkey     TYPE SORTED TABLE OF vbeln_vf WITH UNIQUE KEY table_line,
+          lt_vbelv     TYPE SORTED TABLE OF vbeln WITH UNIQUE KEY table_line.
+
+    lt_item_keys = VALUE #( FOR ls IN lt_bsid
+                             ( bukrs = ls-bukrs gjahr = ls-gjahr belnr = ls-belnr buzei = ls-buzei ) ).
+    lt_hdr_keys = VALUE #( FOR ls IN lt_bsid
+                             ( bukrs = ls-bukrs belnr = ls-belnr gjahr = ls-gjahr ) ).
+
+    SELECT bukrs belnr gjahr buzei bukrs_clr belnr_clr gjahr_clr buzei_clr clrin
+      FROM bse_clr
+      INTO TABLE @GT_BSE
+      FOR ALL ENTRIES IN @lt_item_keys
+      WHERE bukrs = @lt_item_keys-bukrs
+        AND belnr = @lt_item_keys-belnr
+        AND gjahr = @lt_item_keys-gjahr
+        AND buzei = @lt_item_keys-buzei.
+
+    IF GT_BSE IS NOT INITIAL.
+      GT_BSE_CLRR[] = GT_BSE[].
+      SORT GT_BSE_CLRR BY CLRIN.
+      DELETE GT_BSE_CLRR WHERE CLRIN NE '2'.
+      IF GT_BSE_CLRR IS NOT INITIAL.
+        SORT GT_BSE_CLRR BY BUKRS BELNR GJAHR.
+        SELECT bukrs belnr gjahr rebzg dmbtr wrbtr
+          FROM bsid
+          INTO TABLE @IT_BSIDR
+          FOR ALL ENTRIES IN @GT_BSE_CLRR
+          WHERE bukrs = @GT_BSE_CLRR-bukrs_clr
+            AND belnr = @GT_BSE_CLRR-belnr_clr
+            AND gjahr = @GT_BSE_CLRR-gjahr_clr
+            AND rebzg = @GT_BSE_CLRR-belnr.
+        IF IT_BSIDR IS NOT INITIAL.
+          SORT IT_BSIDR BY BUKRS BELNR GJAHR REBZG.
+        ENDIF.
       ENDIF.
     ENDIF.
-*      Fetching the AWKEY for the RV Document
-    SELECT BUKRS BELNR GJAHR AWKEY
-    INTO TABLE LT_BKPF
-     FROM BKPF
-     FOR ALL ENTRIES IN LT_BSID
-    WHERE BUKRS = LT_BSID-BUKRS
-    AND   BELNR = LT_BSID-BELNR
-     AND  GJAHR = LT_BSID-GJAHR.
 
-    LT_BKPF_SHORT[] = LT_BKPF[].
-    SORT LT_BKPF_SHORT BY AWKEY.
-    DELETE ADJACENT DUPLICATES FROM LT_BKPF_SHORT COMPARING AWKEY.
-    IF LT_BKPF_SHORT IS NOT INITIAL.
-*       Payment Term
-      SELECT VBELN ZTERM VTWEG SPART VKORG
-      FROM VBRK
-      INTO TABLE LT_VBRK_RV
-      FOR ALL ENTRIES IN LT_BKPF_SHORT
-      WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10).   "LT_BSID_SORT-XBLNR+0(10).
+    lt_all_hdr = lt_hdr_keys.
+    IF GT_BSE IS NOT INITIAL.
+      lt_all_hdr = VALUE #( BASE lt_all_hdr
+                            ( FOR ls IN GT_BSE
+                                ( bukrs = ls-bukrs_clr
+                                  belnr = ls-belnr_clr
+                                  gjahr = ls-gjahr_clr ) ) ).
+    ENDIF.
 
-*********************************** SOC : 5113 ******************************
-      BREAK ABAP03.
-      DATA : LV_PARVW TYPE VBPA-PARVW.
-      CLEAR : LV_PARVW.
+    SELECT bukrs belnr gjahr awkey budat xrevers blart rebzg rebzj
+      FROM bkpf
+      INTO TABLE @lt_bkpf
+      FOR ALL ENTRIES IN @lt_all_hdr
+      WHERE bukrs = @lt_all_hdr-bukrs
+        AND belnr = @lt_all_hdr-belnr
+        AND gjahr = @lt_all_hdr-gjahr.
+
+    gt_bkpf_ab = FILTER #( lt_bkpf WHERE blart = 'AB' ).
+
+    lt_awkey = VALUE #( FOR ls IN lt_bkpf WHERE ( awkey IS NOT INITIAL )
+                        ( ls-awkey(10) ) ).
+
+    SELECT rbukrs gjahr belnr buzei prctr racct bldat bschl rebzg
+      FROM acdoca
+      INTO TABLE @lt_acdoca
+      FOR ALL ENTRIES IN @lt_item_keys
+      WHERE rbukrs = @lt_item_keys-bukrs
+        AND gjahr  = @lt_item_keys-gjahr
+        AND belnr  = @lt_item_keys-belnr
+        AND buzei  = @lt_item_keys-buzei
+        AND prctr IN @s_prctr
+        AND racct IN @s_racct.
+
+    IF lt_awkey IS NOT INITIAL.
+      SELECT vbeln posnv vbelv vbtyp_v
+        FROM vbfa
+        INTO TABLE @lt_vbfa
+        FOR ALL ENTRIES IN @lt_awkey
+        WHERE vbeln = @lt_awkey-table_line
+          AND vbtyp_v = 'C'.
+
+      SELECT vbeln zterm vtweg spart vkorg
+        FROM vbrk
+        INTO TABLE @lt_vbrk_rv
+        FOR ALL ENTRIES IN @lt_awkey
+        WHERE vbeln = @lt_awkey-table_line.
+
+      DATA lv_parvw TYPE vbpa-parvw.
       CALL FUNCTION 'CONVERSION_EXIT_PARVW_INPUT'
-        EXPORTING
-          INPUT  = 'CA'
-        IMPORTING
-          OUTPUT = LV_PARVW.
-      SELECT A~VBELN A~PARVW A~LIFNR B~NAME1 B~SORTL
-        FROM VBPA AS A
-          INNER JOIN LFA1 AS B
-            ON A~LIFNR = B~LIFNR
-              INTO TABLE IT_VBPA
-              FOR ALL ENTRIES IN LT_BKPF_SHORT
-                WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10)
-                  AND A~PARVW = LV_PARVW.
+        EXPORTING input = 'CA'
+        IMPORTING output = lv_parvw.
+      SELECT a~vbeln a~parvw a~lifnr b~name1 b~sortl
+        FROM vbpa AS a
+        INNER JOIN lfa1 AS b ON a~lifnr = b~lifnr
+        INTO TABLE @IT_VBPA
+        FOR ALL ENTRIES IN @lt_awkey
+        WHERE a~vbeln = @lt_awkey-table_line
+          AND a~parvw = @lv_parvw.
       IF IT_VBPA IS NOT INITIAL.
         SORT IT_VBPA BY VBELN.
       ENDIF.
-      CLEAR : LV_PARVW.
-*********************************** EOC : 5113 ******************************
 
-      IF SY-SUBRC = 0.
-        LT_VBRK_RV_SORT = LT_VBRK_RV.
-        SORT  LT_VBRK_RV_SORT BY ZTERM.
-        DELETE ADJACENT DUPLICATES FROM LT_VBRK_RV_SORT COMPARING ZTERM.
-        IF LT_VBRK_RV_SORT IS NOT INITIAL.
-          SELECT ZTERM SPRAS VTEXT
-          INTO TABLE LT_TVZBT
-          FROM TVZBT
-          FOR ALL ENTRIES IN LT_VBRK_RV_SORT
-          WHERE ZTERM = LT_VBRK_RV_SORT-ZTERM
-          AND SPRAS = 'EN'.
-        ENDIF.
-        CLEAR: LT_VBRK_RV_SORT.
-      ENDIF.
-*    Selection of VBFA
-      SELECT VBELV POSNV VBELN VBTYP_V
-      INTO TABLE LT_VBFA
-      FROM VBFA
-      FOR ALL ENTRIES IN LT_BKPF_SHORT           "LT_BSID_SORT
-      WHERE VBELN = LT_BKPF_SHORT-AWKEY+0(10)    "LT_BSID_SORT-XBLNR+0(10)
-      AND   VBTYP_V = 'C'.
-      IF SY-SUBRC = 0.
-        SELECT VBELN KVGR1 VKGRP VKBUR ZLOCN
-        INTO TABLE LT_VBAK
-        FROM VBAK
-        FOR ALL ENTRIES IN LT_VBFA
-        WHERE VBELN = LT_VBFA-VBELV.
-        IF SY-SUBRC = 0.
-          LT_VBAK_SORT = LT_VBAK.
-          SORT LT_VBAK_SORT BY KVGR1.
-          DELETE ADJACENT DUPLICATES FROM LT_VBAK_SORT COMPARING KVGR1.
-          IF LT_VBAK_SORT IS NOT INITIAL.
-            SELECT  KVGR1 BEZEI
+      lt_vbelv = VALUE #( FOR ls IN lt_vbfa ( ls-vbelv ) ).
+
+      IF lt_vbelv IS NOT INITIAL.
+        SELECT vbeln kvgr1 vkgrp vkbur zlocn
+          FROM vbak
+          INTO TABLE @lt_vbak
+          FOR ALL ENTRIES IN @lt_vbelv
+          WHERE vbeln = @lt_vbelv-table_line.
+
+        SELECT vbeln posnr bzirK
+          FROM vbkd
+          INTO TABLE @lt_vbkd
+          FOR ALL ENTRIES IN @lt_vbelv
+          WHERE vbeln = @lt_vbelv-table_line.
+
+        LT_VBAK_SORT = LT_VBAK.
+        SORT LT_VBAK_SORT BY KVGR1.
+        DELETE ADJACENT DUPLICATES FROM LT_VBAK_SORT COMPARING KVGR1.
+        IF LT_VBAK_SORT IS NOT INITIAL.
+          SELECT KVGR1 BEZEI
             INTO TABLE LT_TVV1T
             FROM TVV1T
             FOR ALL ENTRIES IN LT_VBAK_SORT
             WHERE SPRAS = SY-LANGU
-             AND KVGR1 = LT_VBAK_SORT-KVGR1.
-          ENDIF.
-*           Des for Manager
-          LT_VBAK_SORT = LT_VBAK.
-          SORT LT_VBAK_SORT BY VKGRP.
-          DELETE ADJACENT DUPLICATES FROM LT_VBAK_SORT COMPARING VKGRP.
-          "Added By Hiren bhoi on 11-04-2023 Devid-3990
-*          IF LT_VBAK_SORT IS NOT INITIAL.
-          IF LT_VBAK IS NOT INITIAL.
-            SELECT VKBUR BEZEI
-               INTO TABLE LT_TVKBT
-            FROM TVKBT
-            FOR ALL ENTRIES IN LT_VBAK "LT_VBAK_SORT
-            WHERE SPRAS = SY-LANGU
-              AND VKBUR = LT_VBAK-VKBUR. "LT_VBAK_SORT-VKBUR.
-          ENDIF. " LT_VBAK IS NOT INITIAL.
-          "End Of Hiren Devid-3990
+              AND KVGR1 = LT_VBAK_SORT-KVGR1.
+        ENDIF.
 
-          IF LT_VBAK_SORT IS NOT INITIAL.
-            SELECT  VKGRP BEZEI
+        LT_VBAK_SORT = LT_VBAK.
+        SORT LT_VBAK_SORT BY VKGRP.
+        DELETE ADJACENT DUPLICATES FROM LT_VBAK_SORT COMPARING VKGRP.
+        IF LT_VBAK IS NOT INITIAL.
+          SELECT VKBUR BEZEI
+            INTO TABLE LT_TVKBT
+            FROM TVKBT
+            FOR ALL ENTRIES IN LT_VBAK
+            WHERE SPRAS = SY-LANGU
+              AND VKBUR = LT_VBAK-VKBUR.
+        ENDIF.
+
+        IF LT_VBAK_SORT IS NOT INITIAL.
+          SELECT VKGRP BEZEI
             INTO TABLE LT_TVGRT
             FROM TVGRT
             FOR ALL ENTRIES IN LT_VBAK_SORT
             WHERE SPRAS = SY-LANGU
               AND VKGRP = LT_VBAK_SORT-VKGRP.
-          ENDIF.
-        ENDIF.   "LT_VBAK
-        SELECT VBELN POSNR BZIRK
-        INTO TABLE LT_VBKD
-        FROM VBKD
-        FOR ALL ENTRIES IN LT_VBFA
-        WHERE VBELN = LT_VBFA-VBELV.
-        IF SY-SUBRC = 0.
         ENDIF.
       ENDIF.
-    ENDIF.  "For BLART RV
-    SELECT KUNNR LAND1 NAME1 NAME2
-    INTO TABLE LT_KNA1
-    FROM KNA1
-    FOR ALL ENTRIES IN LT_BSID
-     WHERE KUNNR = LT_BSID-KUNNR.
 
-*     ACDOCA for Profit center
-    SELECT RBUKRS GJAHR BELNR BUZEI PRCTR RACCT BLDAT BSCHL REBZG "Added rebzg 4884
-    INTO TABLE LT_ACDOCA
-    FROM ACDOCA
-    FOR ALL ENTRIES IN LT_BSID
-    WHERE RBUKRS = LT_BSID-BUKRS
-     AND  GJAHR = LT_BSID-GJAHR
-     AND  BELNR = LT_BSID-BELNR
-     AND  BUZEI = LT_BSID-BUZEI
-     AND  PRCTR IN S_PRCTR
-     AND RACCT IN S_RACCT. "Added by pratik 8.1.19
+      LT_VBRK_RV_SORT = LT_VBRK_RV.
+      SORT LT_VBRK_RV_SORT BY ZTERM.
+      DELETE ADJACENT DUPLICATES FROM LT_VBRK_RV_SORT COMPARING ZTERM.
+      IF LT_VBRK_RV_SORT IS NOT INITIAL.
+        SELECT ZTERM SPRAS VTEXT
+          INTO TABLE LT_TVZBT
+          FROM TVZBT
+          FOR ALL ENTRIES IN LT_VBRK_RV_SORT
+          WHERE ZTERM = LT_VBRK_RV_SORT-ZTERM
+            AND SPRAS = 'EN'.
+      ENDIF.
+      CLEAR LT_VBRK_RV_SORT.
+
+    ENDIF.
+
+    LT_BSID_SORT[] = LT_BSID[].
+    SORT LT_BSID_SORT BY ZTERM.
+    DELETE ADJACENT DUPLICATES FROM LT_BSID_SORT COMPARING ZTERM.
+    IF LT_BSID_SORT IS NOT INITIAL.
+      SELECT ZTERM VTEXT
+        INTO TABLE LT_TVZBT_FI
+        FROM TVZBT
+        FOR ALL ENTRIES IN LT_BSID
+        WHERE ZTERM = LT_BSID-ZTERM.
+
+      SELECT ZTERM ZTAGG ZTAG1 ZTAG2 ZTAG3
+        FROM T052
+        INTO TABLE LT_T052
+        FOR ALL ENTRIES IN LT_BSID_SORT
+        WHERE ZTERM = LT_BSID_SORT-ZTERM.
+    ENDIF.
+
+    SELECT KUNNR LAND1 NAME1 NAME2
+      INTO TABLE LT_KNA1
+      FROM KNA1
+      FOR ALL ENTRIES IN LT_BSID
+      WHERE KUNNR = LT_BSID-KUNNR.
+
   ENDIF.
 
 *   populating the LT_FINAL
@@ -314,189 +364,30 @@ FORM SUB_TAB_SEL_FINAL_FILL .
   LT_ACDOCA_SORT[] = LT_ACDOCA[].
   DELETE ADJACENT DUPLICATES FROM LT_ACDOCA_SORT COMPARING RBUKRS GJAHR BELNR BUZEI.
 
-  IF S_PRCTR IS INITIAL.
-    IF LT_BSID_SORT IS NOT INITIAL.
-
-
-      SELECT * FROM BSE_CLR INTO TABLE GT_BSE FOR ALL ENTRIES IN LT_BSID_SORT WHERE BUKRS = LT_BSID_SORT-BUKRS
-                                                                                  AND BELNR = LT_BSID_SORT-BELNR
-                                                                                  AND GJAHR = LT_BSID_SORT-GJAHR
-                                                                                  AND BUZEI = LT_BSID_SORT-BUZEI.
-      IF GT_BSE IS NOT INITIAL.
-
-****************************************** SOC : 5113 **********************************************
-        BREAK ABAP03.
-        REFRESH : GT_BSE_CLRR[].
-        GT_BSE_CLRR[] = GT_BSE[].
-        SORT GT_BSE_CLRR BY CLRIN.
-        DELETE GT_BSE_CLRR WHERE CLRIN NE '2'.
-        IF GT_BSE_CLRR IS NOT INITIAL.
-          SORT GT_BSE_CLRR BY BUKRS BELNR GJAHR.
-          SELECT BUKRS BELNR GJAHR REBZG DMBTR WRBTR    "" wrbtr soc: 5628
-            FROM BSID
-              INTO TABLE IT_BSIDR
-                FOR ALL ENTRIES IN GT_BSE_CLRR
-                  WHERE BUKRS = GT_BSE_CLRR-BUKRS_CLR
-                    AND BELNR = GT_BSE_CLRR-BELNR_CLR
-                    AND GJAHR = GT_BSE_CLRR-GJAHR_CLR
-                    AND REBZG = GT_BSE_CLRR-BELNR.
-          IF IT_BSIDR IS NOT INITIAL.
-            SORT IT_BSIDR BY BUKRS BELNR GJAHR REBZG.
-          ENDIF.
-        ENDIF.
-****************************************** EOC : 5113 **********************************************
-
-        ""Added rebzg rebzj augdt 4884
-        SELECT RBUKRS BELNR GJAHR BUDAT XREVERSED REBZG REBZJ AUGDT FROM ACDOCA INTO TABLE GT_BKPF
-                                                     FOR ALL ENTRIES IN GT_BSE
-                                                     WHERE RBUKRS = GT_BSE-BUKRS_CLR
-                                                     AND BELNR = GT_BSE-BELNR_CLR
-                                                     AND GJAHR = GT_BSE-GJAHR_CLR.
-
-*                                                     AND BUDAT IN S_INVDAT.
-                                                            "BOC 4884
-        IF GT_BKPF[] IS NOT INITIAL.
-          GT_BKPFN[] = GT_BKPF[].
-          DELETE GT_BKPFN WHERE REBZG IS INITIAL.
-          IF GT_BKPFN[] IS NOT INITIAL.
-            SELECT BUKRS ,  BELNR , GJAHR , BLART
-              FROM BKPF
-              FOR ALL ENTRIES IN @GT_BKPFN
-              WHERE BUKRS = @GT_BKPFN-BUKRS
-              AND   BELNR = @GT_BKPFN-REBZG
-              AND   GJAHR = @GT_BKPFN-REBZJ
-              AND   BLART = 'AB'
-              INTO TABLE @GT_BKPFN1.
-            SORT : GT_BKPFN1 BY BUKRS   BELNR GJAHR  BLART.
-          ENDIF.
-        ENDIF.
-                                                            "EOC 4884
-      ENDIF.
-    ENDIF.
-    GT_BKPFN[] = GT_BKPF[].
-    SORT : GT_BKPFN BY BUKRS BELNR GJAHR REBZG.
-*    DELETE gt_bkpfn WHERE rebzg = ' '.
-*    DELETE gt_bkpfn WHERE augdt IS NOT INITIAL .
-    LOOP AT LT_BSID_SORT INTO LW_BSID.
-      PERFORM SUB_FINAL_TABLE_POPULATION USING LW_BSID
-                                               LT_KNA1
-                                               LT_ACDOCA
-                                               LT_CEPCT
-                                               LT_BSID_WR
-                                               LT_BSID_NR
-                                               LT_VBFA
-                                               LT_VBAK
-                                               LT_VBKD
-                                               LT_TVZBT
-                                               LT_TVZBT_FI
-                                               LT_VBRK_RV
-                                               LT_TVV1T
-                                               LT_TVGRT
-                                               LT_BKPF
-                                               IT_VBPA " SOC : 5113
-                                               LT_T052
-                                               LT1_BSID
-                                               LT_TVKBT
-                                         CHANGING LW_FINAL
-                                                  GT_FINAL
-                                                  LW_BSID_PRE.
-    ENDLOOP.
-
-  ELSE.
-    IF LT_ACDOCA_SORT IS NOT INITIAL.
-      SELECT * FROM BSE_CLR INTO TABLE GT_BSE FOR ALL ENTRIES IN LT_ACDOCA_SORT WHERE BUKRS = LT_ACDOCA_SORT-RBUKRS
-                                                                                  AND BELNR = LT_ACDOCA_SORT-BELNR
-                                                                                  AND GJAHR = LT_ACDOCA_SORT-GJAHR
-                                                                                  AND BUZEI = LT_ACDOCA_SORT-BUZEI.
-
-      IF GT_BSE IS NOT INITIAL.
-
-****************************************** SOC : 5113 **********************************************
-        BREAK ABAP03.
-        REFRESH : GT_BSE_CLRR[].
-        GT_BSE_CLRR[] = GT_BSE[].
-        SORT GT_BSE_CLRR BY CLRIN.
-        DELETE GT_BSE_CLRR WHERE CLRIN NE '2'.
-        IF GT_BSE_CLRR IS NOT INITIAL.
-          SORT GT_BSE_CLRR BY BUKRS BELNR GJAHR.
-          SELECT BUKRS BELNR GJAHR REBZG DMBTR
-                 WRBTR      "" added by jash rajpara dev id: 5628 dt: 09.09.24
-            FROM BSID
-              INTO TABLE IT_BSIDR
-                FOR ALL ENTRIES IN GT_BSE_CLRR
-                  WHERE BUKRS = GT_BSE_CLRR-BUKRS_CLR
-                    AND BELNR = GT_BSE_CLRR-BELNR_CLR
-                    AND GJAHR = GT_BSE_CLRR-GJAHR_CLR
-                    AND REBZG = GT_BSE_CLRR-BELNR.
-          IF IT_BSIDR IS NOT INITIAL.
-            SORT IT_BSIDR BY BUKRS BELNR GJAHR REBZG.
-          ENDIF.
-        ENDIF.
-****************************************** EOC : 5113 **********************************************
-
-        "Added 4884 rebzg rebzj  augdt
-        SELECT RBUKRS BELNR GJAHR BUDAT XREVERSED  REBZG REBZJ  AUGDT FROM ACDOCA INTO TABLE GT_BKPF FOR ALL ENTRIES IN GT_BSE
-                                                                              WHERE RBUKRS = GT_BSE-BUKRS_CLR
-                                                                                AND BELNR = GT_BSE-BELNR_CLR
-                                                                                AND GJAHR = GT_BSE-GJAHR_CLR.
-*                                                                                AND BUDAT IN S_INVDAT.
-*                                                                                AND XREVERSED = 'X'.
-                                                            "BOC 4884
-        IF GT_BKPF[] IS NOT INITIAL.
-          GT_BKPFN[] = GT_BKPF[].
-          DELETE GT_BKPFN WHERE REBZG IS INITIAL.
-          IF GT_BKPFN[] IS NOT INITIAL.
-            SELECT BUKRS ,  BELNR , GJAHR , BLART
-              FROM BKPF
-              FOR ALL ENTRIES IN @GT_BKPFN
-              WHERE BUKRS = @GT_BKPFN-BUKRS
-              AND   BELNR = @GT_BKPFN-REBZG
-              AND   GJAHR = @GT_BKPFN-REBZJ
-              AND   BLART = 'AB'
-              INTO TABLE @GT_BKPFN1.
-            SORT : GT_BKPFN1 BY BUKRS   BELNR GJAHR  BLART.
-          ENDIF.
-        ENDIF.
-                                                            "EOC 4884
-      ENDIF.
-    ENDIF.
-    GT_BKPFN[] = GT_BKPF[].
-    SORT : GT_BKPFN BY BUKRS BELNR GJAHR REBZG.
-*    DELETE gt_bkpfn WHERE rebzg = ' '.
-*    DELETE gt_bkpfn WHERE augdt IS NOT INITIAL .
-    LOOP AT LT_ACDOCA_SORT INTO LW_ACDOCA.
-      READ TABLE LT_BSID INTO LW_BSID  WITH KEY   BUKRS = LW_ACDOCA-RBUKRS
-                                                  GJAHR  = LW_ACDOCA-GJAHR
-                                                  BELNR  = LW_ACDOCA-BELNR
-                                                  BUZEI  = LW_ACDOCA-BUZEI
-                                                  BINARY SEARCH.
-      IF SY-SUBRC = 0.
-        PERFORM SUB_FINAL_TABLE_POPULATION USING LW_BSID
-                                            LT_KNA1
-                                            LT_ACDOCA
-                                            LT_CEPCT
-                                            LT_BSID_WR
-                                            LT_BSID_NR
-                                            LT_VBFA
-                                            LT_VBAK
-                                            LT_VBKD
-                                            LT_TVZBT
-                                            LT_TVZBT_FI
-                                            LT_VBRK_RV
-                                            LT_TVV1T
-                                            LT_TVGRT
-                                            LT_BKPF
-                                            IT_VBPA " SOC : 5113
-                                            LT_T052
-                                            LT1_BSID
-                                            LT_TVKBT
-                                      CHANGING LW_FINAL
-                                               GT_FINAL
-                                               LW_BSID_PRE.
-        CLEAR:LW_BSID.
-      ENDIF.
-    ENDLOOP.
-  ENDIF.
+  LOOP AT LT_BSID_SORT INTO LW_BSID.
+    PERFORM SUB_FINAL_TABLE_POPULATION USING LW_BSID
+                                           LT_KNA1
+                                           LT_ACDOCA
+                                           LT_CEPCT
+                                           LT_BSID_WR
+                                           LT_BSID_NR
+                                           LT_VBFA
+                                           LT_VBAK
+                                           LT_VBKD
+                                           LT_TVZBT
+                                           LT_TVZBT_FI
+                                           LT_VBRK_RV
+                                           LT_TVV1T
+                                           LT_TVGRT
+                                           LT_BKPF
+                                           IT_VBPA
+                                           LT_T052
+                                           LT1_BSID
+                                           LT_TVKBT
+                                     CHANGING LW_FINAL
+                                              GT_FINAL
+                                              LW_BSID_PRE.
+  ENDLOOP.
 
 *** ---Calculations for UE Document type ---***
   LOOP AT GT_FINAL ASSIGNING FIELD-SYMBOL(<FS_FINAL>).
@@ -970,7 +861,6 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
   BREAK ABAP03.
 *****        Populate the Adjustment Amount  ******DoNot Calculate for document type AB and DZ
   IF FP_LW_FINAL-BLART <> 'AB' AND FP_LW_FINAL-BLART <> 'DZ'.
-    SORT : GT_BSE BY BELNR_CLR DESCENDING GJAHR_CLR DESCENDING.
     LOOP AT GT_BSE  INTO GW_BSE WHERE BUKRS = FP_LW_BSID-BUKRS
                                   AND GJAHR = FP_LW_BSID-GJAHR
                                   AND BELNR = FP_LW_BSID-BELNR
@@ -1103,32 +993,22 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
         IF GW_BSE-CLRIN = '2'.
           IF FP_LW_BSID-REBZG IS NOT INITIAL.
 
-            READ TABLE GT_BKPFN INTO GW_BKPF WITH KEY BUKRS = GW_BSE-BUKRS_CLR
+            READ TABLE LT_BKPF INTO GW_BKPF WITH KEY BUKRS = GW_BSE-BUKRS_CLR
                                                      BELNR = GW_BSE-BELNR_CLR
-                                                     GJAHR = GW_BSE-GJAHR_CLR
-                                                     REBZG = FP_LW_BSID-REBZG BINARY SEARCH.
-            IF SY-SUBRC <> 0.
+                                                     GJAHR = GW_BSE-GJAHR_CLR.
+            IF SY-SUBRC <> 0 OR
+               line_exists( gt_bkpf_ab[ bukrs = GW_BSE-BUKRS_CLR belnr = GW_BKPF-REBZG gjahr = GW_BKPF-REBZJ ] ).
               APPEND FP_LW_FINAL TO FP_GT_FINAL.
-            ELSE.
-
-              IF LINE_EXISTS( GT_BKPFN1[ BUKRS = GW_BSE-BUKRS_CLR
-                                         BELNR = GW_BKPF-REBZG
-                                         GJAHR = GW_BKPF-REBZJ ] ).
-                APPEND FP_LW_FINAL TO FP_GT_FINAL.
-
-              ENDIF.
             ENDIF.
           ELSE.
-            READ TABLE GT_BKPFN INTO GW_BKPF WITH KEY BUKRS = GW_BSE-BUKRS_CLR
+            READ TABLE LT_BKPF INTO GW_BKPF WITH KEY BUKRS = GW_BSE-BUKRS_CLR
                                                    BELNR = GW_BSE-BELNR_CLR
-                                                   GJAHR = GW_BSE-GJAHR_CLR
-                                                   REBZG = ' ' BINARY SEARCH.
+                                                   GJAHR = GW_BSE-GJAHR_CLR.
             IF SY-SUBRC = 0.
               APPEND FP_LW_FINAL TO FP_GT_FINAL.
             ENDIF.
           ENDIF.
         ENDIF.
-                                                            "EOC 4884
       ENDIF. " COMMENTED BY RIYA ON 15.11.2022
     ELSE.
       APPEND FP_LW_FINAL TO FP_GT_FINAL.
