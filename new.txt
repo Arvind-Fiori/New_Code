@@ -1,12 +1,13 @@
 REPORT ztest_adjacent_duplicate_fail.
+
 START-OF-SELECTION.
+  SELECT a~matnr,
+         b~werks
+    FROM mara AS a
+    INNER JOIN marc AS b
+      ON b~matnr = a~matnr
+    INTO TABLE @DATA(gt_mat_plant).
 
-select * FROM mara INTO TABLE @data(gt_mara).
-select * FROM marc INTO TABLE @data(gt_marc).
-
-
-  LOOP AT gt_mara INTO data(gs_mara).
-    LOOP AT gt_marc INTO data(gs_marc).
-      WRITE : / gs_marc-matnr , gs_marc-werks.
-    ENDLOOP.
+  LOOP AT gt_mat_plant INTO DATA(gs_mat_plant).
+    WRITE: / gs_mat_plant-matnr, gs_mat_plant-werks.
   ENDLOOP.
