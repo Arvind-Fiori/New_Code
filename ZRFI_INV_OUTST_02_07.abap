@@ -89,9 +89,9 @@ END-OF-SELECTION.
         CLEAR : ls_crm_os.
       ENDLOOP.
       CLEAR : lv_num.
+      SELECT SINGLE MAX( sr_no ) INTO lv_num FROM zcrm_os_integrat.
+
       LOOP AT gt_final INTO DATA(ls_final).
-        CLEAR : lv_num.
-        SELECT SINGLE MAX( sr_no ) INTO lv_num FROM zcrm_os_integrat.
         lv_num = lv_num + 1.
         ls_crm_os-sr_no = lv_num.
         ls_crm_os-manager = ls_final-manager.
