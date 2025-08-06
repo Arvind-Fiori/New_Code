@@ -1,0 +1,12 @@
+REPORT ztest_adjacent_duplicate_fail.
+START-OF-SELECTION.
+
+select * FROM mara INTO TABLE @data(gt_mara).
+select * FROM marc INTO TABLE @data(gt_marc).
+
+
+  LOOP AT gt_mara INTO data(gs_mara).
+    LOOP AT gt_marc INTO data(gs_marc).
+      WRITE : / gs_marc-matnr , gs_marc-werks.
+    ENDLOOP.
+  ENDLOOP.
