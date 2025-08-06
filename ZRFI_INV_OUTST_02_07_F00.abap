@@ -169,7 +169,6 @@ FORM SUB_TAB_SEL_FINAL_FILL .
       WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10).   "LT_BSID_SORT-XBLNR+0(10).
 
 *********************************** SOC : 5113 ******************************
-      BREAK ABAP03.
       DATA : LV_PARVW TYPE VBPA-PARVW.
       CLEAR : LV_PARVW.
       CALL FUNCTION 'CONVERSION_EXIT_PARVW_INPUT'
@@ -185,9 +184,6 @@ FORM SUB_TAB_SEL_FINAL_FILL .
               FOR ALL ENTRIES IN LT_BKPF_SHORT
                 WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10)
                   AND A~PARVW = LV_PARVW.
-      IF IT_VBPA IS NOT INITIAL.
-        SORT IT_VBPA BY VBELN.
-      ENDIF.
       CLEAR : LV_PARVW.
 *********************************** EOC : 5113 ******************************
 
@@ -318,31 +314,31 @@ FORM SUB_TAB_SEL_FINAL_FILL .
     IF LT_BSID_SORT IS NOT INITIAL.
 
 
-      SELECT * FROM BSE_CLR INTO TABLE GT_BSE FOR ALL ENTRIES IN LT_BSID_SORT WHERE BUKRS = LT_BSID_SORT-BUKRS
-                                                                                  AND BELNR = LT_BSID_SORT-BELNR
-                                                                                  AND GJAHR = LT_BSID_SORT-GJAHR
-                                                                                  AND BUZEI = LT_BSID_SORT-BUZEI.
+      SELECT bukrs belnr gjahr buzei bukrs_clr belnr_clr gjahr_clr buzei_clr clrin diffw
+        FROM bse_clr
+        INTO TABLE gt_bse
+        FOR ALL ENTRIES IN lt_bsid_sort
+        WHERE bukrs = lt_bsid_sort-bukrs
+          AND belnr = lt_bsid_sort-belnr
+          AND gjahr = lt_bsid_sort-gjahr
+          AND buzei = lt_bsid_sort-buzei.
       IF GT_BSE IS NOT INITIAL.
 
 ****************************************** SOC : 5113 **********************************************
-        BREAK ABAP03.
+*       BREAK ABAP03.
         REFRESH : GT_BSE_CLRR[].
         GT_BSE_CLRR[] = GT_BSE[].
-        SORT GT_BSE_CLRR BY CLRIN.
         DELETE GT_BSE_CLRR WHERE CLRIN NE '2'.
         IF GT_BSE_CLRR IS NOT INITIAL.
           SORT GT_BSE_CLRR BY BUKRS BELNR GJAHR.
-          SELECT BUKRS BELNR GJAHR REBZG DMBTR WRBTR    "" wrbtr soc: 5628
-            FROM BSID
-              INTO TABLE IT_BSIDR
-                FOR ALL ENTRIES IN GT_BSE_CLRR
-                  WHERE BUKRS = GT_BSE_CLRR-BUKRS_CLR
-                    AND BELNR = GT_BSE_CLRR-BELNR_CLR
-                    AND GJAHR = GT_BSE_CLRR-GJAHR_CLR
-                    AND REBZG = GT_BSE_CLRR-BELNR.
-          IF IT_BSIDR IS NOT INITIAL.
-            SORT IT_BSIDR BY BUKRS BELNR GJAHR REBZG.
-          ENDIF.
+          SELECT bukrs belnr gjahr rebzg dmbtr wrbtr    "" wrbtr soc: 5628
+            FROM bsid
+              INTO TABLE it_bsidr
+                FOR ALL ENTRIES IN gt_bse_clrr
+                  WHERE bukrs = gt_bse_clrr-bukrs_clr
+                    AND belnr = gt_bse_clrr-belnr_clr
+                    AND gjahr = gt_bse_clrr-gjahr_clr
+                    AND rebzg = gt_bse_clrr-belnr.
         ENDIF.
 ****************************************** EOC : 5113 **********************************************
 
@@ -404,33 +400,33 @@ FORM SUB_TAB_SEL_FINAL_FILL .
 
   ELSE.
     IF LT_ACDOCA_SORT IS NOT INITIAL.
-      SELECT * FROM BSE_CLR INTO TABLE GT_BSE FOR ALL ENTRIES IN LT_ACDOCA_SORT WHERE BUKRS = LT_ACDOCA_SORT-RBUKRS
-                                                                                  AND BELNR = LT_ACDOCA_SORT-BELNR
-                                                                                  AND GJAHR = LT_ACDOCA_SORT-GJAHR
-                                                                                  AND BUZEI = LT_ACDOCA_SORT-BUZEI.
+      SELECT bukrs belnr gjahr buzei bukrs_clr belnr_clr gjahr_clr buzei_clr clrin diffw
+        FROM bse_clr
+        INTO TABLE gt_bse
+        FOR ALL ENTRIES IN lt_acdoca_sort
+        WHERE bukrs = lt_acdoca_sort-rbukrs
+          AND belnr = lt_acdoca_sort-belnr
+          AND gjahr = lt_acdoca_sort-gjahr
+          AND buzei = lt_acdoca_sort-buzei.
 
       IF GT_BSE IS NOT INITIAL.
 
 ****************************************** SOC : 5113 **********************************************
-        BREAK ABAP03.
+*       BREAK ABAP03.
         REFRESH : GT_BSE_CLRR[].
         GT_BSE_CLRR[] = GT_BSE[].
-        SORT GT_BSE_CLRR BY CLRIN.
         DELETE GT_BSE_CLRR WHERE CLRIN NE '2'.
         IF GT_BSE_CLRR IS NOT INITIAL.
           SORT GT_BSE_CLRR BY BUKRS BELNR GJAHR.
-          SELECT BUKRS BELNR GJAHR REBZG DMBTR
-                 WRBTR      "" added by jash rajpara dev id: 5628 dt: 09.09.24
-            FROM BSID
-              INTO TABLE IT_BSIDR
-                FOR ALL ENTRIES IN GT_BSE_CLRR
-                  WHERE BUKRS = GT_BSE_CLRR-BUKRS_CLR
-                    AND BELNR = GT_BSE_CLRR-BELNR_CLR
-                    AND GJAHR = GT_BSE_CLRR-GJAHR_CLR
-                    AND REBZG = GT_BSE_CLRR-BELNR.
-          IF IT_BSIDR IS NOT INITIAL.
-            SORT IT_BSIDR BY BUKRS BELNR GJAHR REBZG.
-          ENDIF.
+          SELECT bukrs belnr gjahr rebzg dmbtr
+                 wrbtr      "" added by jash rajpara dev id: 5628 dt: 09.09.24
+            FROM bsid
+              INTO TABLE it_bsidr
+                FOR ALL ENTRIES IN gt_bse_clrr
+                  WHERE bukrs = gt_bse_clrr-bukrs_clr
+                    AND belnr = gt_bse_clrr-belnr_clr
+                    AND gjahr = gt_bse_clrr-gjahr_clr
+                    AND rebzg = gt_bse_clrr-belnr.
         ENDIF.
 ****************************************** EOC : 5113 **********************************************
 
@@ -778,7 +774,7 @@ FORM SUB_ALV_DISPLAY USING GT_FINAL TYPE TY_T_FINAL .
         LW_VARIANT-USERNAME = SY-UNAME.
 * Formatted Output Table is Sent to Control
 *        IF sy-tcode <> 'SE37'.
-        BREAK V00046.
+*       BREAK V00046.
 
         LOOP AT GT_FINAL ASSIGNING FIELD-SYMBOL(<FS_FINAL>).
           CLEAR : LV_NEXTMONTH , LV_AFT_NEXTMONTH.
@@ -967,7 +963,7 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
     ENDLOOP.
   ENDIF.
 
-  BREAK ABAP03.
+* BREAK ABAP03.
 *****        Populate the Adjustment Amount  ******DoNot Calculate for document type AB and DZ
   IF FP_LW_FINAL-BLART <> 'AB' AND FP_LW_FINAL-BLART <> 'DZ'.
     SORT : GT_BSE BY BELNR_CLR DESCENDING GJAHR_CLR DESCENDING.
@@ -981,8 +977,10 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
 *      FP_LW_FINAL-NET_OS_DOC  = GW_BSE-DIFFW.
 **      eoC BY JASH RAJPARA DT: 27.06.25 DEV ID: 6981
 
-      READ TABLE IT_BSIDR INTO WA_BSIDR WITH KEY BUKRS = GW_BSE-BUKRS_CLR BELNR = GW_BSE-BELNR_CLR
-                                                 GJAHR = GW_BSE-GJAHR_CLR REBZG = GW_BSE-BELNR BINARY SEARCH.
+      READ TABLE IT_BSIDR INTO WA_BSIDR WITH TABLE KEY bukrs = GW_BSE-BUKRS_CLR
+                                                  belnr = GW_BSE-BELNR_CLR
+                                                  gjahr = GW_BSE-GJAHR_CLR
+                                                  rebzg = GW_BSE-BELNR.
       IF SY-SUBRC = 0.
         FP_LW_FINAL-AMT_REL = FP_LW_FINAL-AMT_REL + WA_BSIDR-DMBTR.
 **        soc by jash rajpara dt: 27.06.25 dev id: 6981
@@ -1046,7 +1044,7 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
 
 ************************************* SOC : 5113 ***************************************
     CLEAR : WA_VBPA.
-    READ TABLE IT_VBPA INTO WA_VBPA WITH KEY VBELN = FP_LW_FINAL-AWKEY BINARY SEARCH.
+    READ TABLE IT_VBPA INTO WA_VBPA WITH TABLE KEY vbeln = FP_LW_FINAL-AWKEY.
     IF SY-SUBRC = 0.
       FP_LW_FINAL-NAME1 = WA_VBPA-NAME1.
       FP_LW_FINAL-SORTL = WA_VBPA-SORTL.
@@ -1276,7 +1274,7 @@ FORM SUB_ONE_TIME_CALCULATION  USING    FP_LW_BSID TYPE TY_BSID
     FP_LW_FINAL-AWKEY = LW_BKPF-AWKEY.   "INV  "In below calculation this is used
 
 ******************************************* SOC : 5113 ****************************************
-    READ TABLE FP_IT_VBPA INTO WA_VBPA WITH KEY FP_LW_FINAL-AWKEY BINARY SEARCH.
+    READ TABLE FP_IT_VBPA INTO WA_VBPA WITH TABLE KEY vbeln = FP_LW_FINAL-AWKEY.
     IF SY-SUBRC = 0.
       FP_LW_FINAL-NAME1 = WA_VBPA-NAME1.
       FP_LW_FINAL-SORTL = WA_VBPA-SORTL.
@@ -1698,7 +1696,7 @@ FORM PORTAL_OUTSTANDING .
                       LV_DMBTR TYPE STRING,
                       LV_HSL   TYPE STRING.
 
-                    BREAK V00046.
+*                   BREAK V00046.
                     LOOP AT GT_FINAL INTO DATA(GW_FINALKP).
                       DATA(LV_KTEXT) = VALUE #( LT_CEPCT[ PRCTR = GW_FINALKP-PRCTR ]-KTEXT OPTIONAL ).
                       DATA(LV_KUNNR) = VALUE #( LT_VBPA[ VBELN = GW_FINALKP-AWKEY ]-KUNNR OPTIONAL ).
@@ -1868,7 +1866,6 @@ FORM GET_DATA_FROM_TABL .
 
   SELECT * FROM ZFI_SALESINV INTO CORRESPONDING FIELDS OF TABLE GT_FINAL
            WHERE BACK_JOB = PO_VARNT .
-
 ENDFORM.
 *&---------------------------------------------------------------------*
 *&      Form  UPLOAD_DATA_TABLE
