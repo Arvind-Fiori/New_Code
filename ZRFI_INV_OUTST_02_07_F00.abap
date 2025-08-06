@@ -78,26 +78,27 @@ FORM SUB_TAB_SEL_FINAL_FILL .
         LT_VBRK         TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0,  "Where document type is Non RV
         LT_VBRK_RV      TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0, "All document type
         LT_VBRK_RV_SORT TYPE STANDARD TABLE OF TY_VBRK INITIAL SIZE 0,
-        LT_BKPF         TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
-        LT_BKPF_SHORT   TYPE HASHED TABLE OF TY_BKPF WITH UNIQUE KEY BUKRS BELNR GJAHR INITIAL SIZE 0,
+        LT_VBELN        TYPE STANDARD TABLE OF VBRK-VBELN WITH DEFAULT KEY,
         LT_T052         TYPE STANDARD TABLE OF TY_T052 INITIAL SIZE 0,
         LT_TVZBT_FI     TYPE STANDARD TABLE OF TY_TVZBT INITIAL SIZE 0.
 *   Slect the Open delivery till today
   IF ( SY-UNAME EQ 'RFCUSER' ).   """ added by jash rajpara dt: 25.11.2024
     CLEAR: S_INVDAT[].
   ENDIF.
-  SELECT BUKRS KUNNR UMSKS UMSKZ AUGDT AUGBL ZUONR GJAHR BELNR BUZEI BUDAT
-         BLDAT CPUDT ZFBDT WAERS XBLNR BLART SHKZG DMBTR WRBTR ZTERM REBZG REBZJ
-         PRCTR ZBD3T ZBD2T ZBD1T SGTXT
-    INTO TABLE LT_BSID
-    FROM BSID
-    WHERE BUKRS IN S_BUKRS
-    AND   KUNNR IN S_KUNNR
-*    AND blart = 'RV'
-    AND BLART IN ( 'RV','DA','DR','DS','DL','DG', 'UE', 'AB', 'DZ','JV','SA','SB', 'DB', 'JM' ) " SB : SOC : 4453   "" JM DB SOC: 5628
-    AND BUDAT IN S_INVDAT
-    AND DMBTR NE '0.00'
-    AND XSTOV <> 'X'.
+    SELECT a~bukrs a~kunnr a~umsks a~umskz a~augdt a~augbl a~zuonr a~gjahr a~belnr a~buzei a~budat
+           a~bldat a~cpudt a~zfbdt a~waers a~xblnr a~blart a~shkzg a~dmbtr a~wrbtr a~zterm a~rebzg a~rebzj
+           a~prctr a~zbd3t a~zbd2t a~zbd1t a~sgtxt b~awkey
+      INTO TABLE lt_bsid
+      FROM bsid AS a
+      INNER JOIN bkpf AS b ON b~bukrs = a~bukrs
+                          AND b~belnr = a~belnr
+                          AND b~gjahr = a~gjahr
+      WHERE a~bukrs IN s_bukrs
+        AND a~kunnr IN s_kunnr
+        AND a~blart IN ( 'RV','DA','DR','DS','DL','DG', 'UE', 'AB', 'DZ','JV','SA','SB', 'DB', 'JM' ) " SB : SOC : 4453   "" JM DB SOC: 5628
+        AND a~budat IN s_invdat
+        AND a~dmbtr NE '0.00'
+        AND a~xstov <> 'X'.
 
   IF LT_BSID IS NOT INITIAL.
 *    SORT LT_BSID BY PRCTR.
@@ -116,16 +117,19 @@ FORM SUB_TAB_SEL_FINAL_FILL .
   ENDIF.
 
 *     Bsad Select the data that is open on cutoff date
-  SELECT BUKRS KUNNR UMSKS UMSKZ AUGDT AUGBL ZUONR GJAHR BELNR BUZEI BUDAT
-         BLDAT CPUDT ZFBDT WAERS XBLNR BLART SHKZG DMBTR WRBTR ZTERM REBZG REBZJ
-         PRCTR ZBD3T ZBD2T ZBD1T
-         APPENDING TABLE  LT_BSID
-         FROM BSAD
-         WHERE BUKRS IN S_BUKRS
-           AND KUNNR IN S_KUNNR
-           AND BLART IN ( 'RV','DA','DR','DS','DL','DG', 'UE', 'AB', 'DZ','JV','SA','SB', 'DB', 'JM' ) " SB : SOC : 4453 "" JM DB SOC: 5628
-           AND AUGDT > P_CDATE  "Document that was cleared after this date
-           AND PRCTR IN S_PRCTR.
+  SELECT a~bukrs a~kunnr a~umsks a~umskz a~augdt a~augbl a~zuonr a~gjahr a~belnr a~buzei a~budat
+         a~bldat a~cpudt a~zfbdt a~waers a~xblnr a~blart a~shkzg a~dmbtr a~wrbtr a~zterm a~rebzg a~rebzj
+         a~prctr a~zbd3t a~zbd2t a~zbd1t b~awkey
+         APPENDING TABLE lt_bsid
+    FROM bsad AS a
+    INNER JOIN bkpf AS b ON b~bukrs = a~bukrs
+                        AND b~belnr = a~belnr
+                        AND b~gjahr = a~gjahr
+    WHERE a~bukrs IN s_bukrs
+      AND a~kunnr IN s_kunnr
+      AND a~blart IN ( 'RV','DA','DR','DS','DL','DG', 'UE', 'AB', 'DZ','JV','SA','SB', 'DB', 'JM' ) " SB : SOC : 4453 "" JM DB SOC: 5628
+      AND a~augdt > p_cdate  "Document that was cleared after this date
+      AND a~prctr IN s_prctr.
 
   IF LT_BSID IS NOT INITIAL.
 *   Fetching the data for due date calculation FI document Non RV
@@ -135,38 +139,30 @@ FORM SUB_TAB_SEL_FINAL_FILL .
     IF LT_BSID_SORT IS NOT INITIAL.
 *         Populating the short term des
       SELECT ZTERM VTEXT
-      INTO TABLE  LT_TVZBT_FI
-      FROM TVZBT
-      FOR ALL ENTRIES IN LT_BSID
-      WHERE ZTERM = LT_BSID-ZTERM.
+        INTO TABLE LT_TVZBT_FI
+        FROM TVZBT
+        FOR ALL ENTRIES IN LT_BSID_SORT
+        WHERE ZTERM = LT_BSID_SORT-ZTERM.
 
       SELECT ZTERM ZTAGG ZTAG1 ZTAG2 ZTAG3
       FROM T052
       INTO TABLE LT_T052
       FOR ALL ENTRIES IN LT_BSID_SORT
       WHERE ZTERM = LT_BSID_SORT-ZTERM.
-      IF SY-SUBRC = 0.
+      IF lt_vbrk_rv IS NOT INITIAL.
       ENDIF.
     ENDIF.
-*      Fetching the AWKEY for the RV Document
-    SELECT BUKRS BELNR GJAHR AWKEY
-    INTO TABLE LT_BKPF
-     FROM BKPF
-     FOR ALL ENTRIES IN LT_BSID
-    WHERE BUKRS = LT_BSID-BUKRS
-    AND   BELNR = LT_BSID-BELNR
-     AND  GJAHR = LT_BSID-GJAHR.
-
-    LT_BKPF_SHORT[] = LT_BKPF[].
-    SORT LT_BKPF_SHORT BY AWKEY.
-    DELETE ADJACENT DUPLICATES FROM LT_BKPF_SHORT COMPARING AWKEY.
-    IF LT_BKPF_SHORT IS NOT INITIAL.
+*      Build list of billing documents
+    lt_vbeln = VALUE #( FOR ls_bsid IN lt_bsid ( ls_bsid-awkey(10) ) ).
+    SORT lt_vbeln.
+    DELETE ADJACENT DUPLICATES FROM lt_vbeln.
+    IF lt_vbeln IS NOT INITIAL.
 *       Payment Term
-      SELECT VBELN ZTERM VTWEG SPART VKORG
-      FROM VBRK
-      INTO TABLE LT_VBRK_RV
-      FOR ALL ENTRIES IN LT_BKPF_SHORT
-      WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10).   "LT_BSID_SORT-XBLNR+0(10).
+      SELECT vbeln zterm vtweg spart vkorg
+        FROM vbrk
+        INTO TABLE lt_vbrk_rv
+        FOR ALL ENTRIES IN lt_vbeln
+        WHERE vbeln = lt_vbeln-table_line.
 
 *********************************** SOC : 5113 ******************************
       BREAK ABAP03.
@@ -177,14 +173,14 @@ FORM SUB_TAB_SEL_FINAL_FILL .
           INPUT  = 'CA'
         IMPORTING
           OUTPUT = LV_PARVW.
-      SELECT A~VBELN A~PARVW A~LIFNR B~NAME1 B~SORTL
-        FROM VBPA AS A
-          INNER JOIN LFA1 AS B
-            ON A~LIFNR = B~LIFNR
-              INTO TABLE IT_VBPA
-              FOR ALL ENTRIES IN LT_BKPF_SHORT
-                WHERE VBELN =  LT_BKPF_SHORT-AWKEY+0(10)
-                  AND A~PARVW = LV_PARVW.
+        SELECT a~vbeln a~parvw a~lifnr b~name1 b~sortl
+          FROM vbpa AS a
+            INNER JOIN lfa1 AS b
+              ON a~lifnr = b~lifnr
+                INTO TABLE it_vbpa
+                FOR ALL ENTRIES IN lt_vbeln
+                  WHERE a~vbeln = lt_vbeln-table_line
+                    AND a~parvw = lv_parvw.
       IF IT_VBPA IS NOT INITIAL.
         SORT IT_VBPA BY VBELN.
       ENDIF.
@@ -205,14 +201,14 @@ FORM SUB_TAB_SEL_FINAL_FILL .
         ENDIF.
         CLEAR: LT_VBRK_RV_SORT.
       ENDIF.
-*    Selection of VBFA
-      SELECT VBELV POSNV VBELN VBTYP_V
-      INTO TABLE LT_VBFA
-      FROM VBFA
-      FOR ALL ENTRIES IN LT_BKPF_SHORT           "LT_BSID_SORT
-      WHERE VBELN = LT_BKPF_SHORT-AWKEY+0(10)    "LT_BSID_SORT-XBLNR+0(10)
-      AND   VBTYP_V = 'C'.
-      IF SY-SUBRC = 0.
+    *    Selection of VBFA
+      SELECT vbelv posnv vbeln vbtyp_v
+        INTO TABLE lt_vbfa
+        FROM vbfa
+        FOR ALL ENTRIES IN lt_vbeln           "LT_BSID_SORT
+        WHERE vbeln = lt_vbeln-table_line    "LT_BSID_SORT-XBLNR+0(10)
+        AND   vbtyp_v = 'C'.
+      IF sy-subrc = 0.
         SELECT VBELN KVGR1 VKGRP VKBUR ZLOCN
         INTO TABLE LT_VBAK
         FROM VBAK
@@ -392,7 +388,6 @@ FORM SUB_TAB_SEL_FINAL_FILL .
                                                LT_VBRK_RV
                                                LT_TVV1T
                                                LT_TVGRT
-                                               LT_BKPF
                                                IT_VBPA " SOC : 5113
                                                LT_T052
                                                LT1_BSID
@@ -485,7 +480,6 @@ FORM SUB_TAB_SEL_FINAL_FILL .
                                             LT_VBRK_RV
                                             LT_TVV1T
                                             LT_TVGRT
-                                            LT_BKPF
                                             IT_VBPA " SOC : 5113
                                             LT_T052
                                             LT1_BSID
@@ -891,7 +885,6 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
                                           FP_LT_VBRK_RV TYPE TY_T_VBRK
                                           FP_LT_TVV1T TYPE TY_T_TVV1T
                                           FP_LT_TVGRT TYPE TY_T_TVGRT
-                                          FP_LT_BKPF  TYPE TY_T_BKPF
                                           FP_IT_VBPA  TYPE TY_T_VBPA " SOC : 5113
                                           FP_LT_T052  TYPE TY_T_T052
                                           LT_BSID TYPE TY1_T_BSID
@@ -922,7 +915,6 @@ FORM SUB_FINAL_TABLE_POPULATION  USING    FP_LW_BSID TYPE TY_BSID
                                          FP_LT_VBRK_RV
                                          FP_LT_TVV1T
                                          FP_LT_TVGRT
-                                         FP_LT_BKPF
                                          FP_IT_VBPA " SOC : 5113
 *                                         FP_ " SOC : 5113
                                          FP_LT_T052
@@ -1213,10 +1205,9 @@ FORM SUB_ONE_TIME_CALCULATION  USING    FP_LW_BSID TYPE TY_BSID
                                         FP_LT_TVZBT TYPE TY_T_TVZBT
                                         FP_LT_TVZBT_FI TYPE TY_T_TVZBT
                                         FP_LT_VBRK_RV TYPE TY_T_VBRK
-                                        FP_LT_TVV1T TYPE TY_T_TVV1T
-                                        FP_LT_TVGRT TYPE TY_T_TVGRT
-                                        FP_LT_BKPF  TYPE TY_T_BKPF
-                                        FP_IT_VBPA TYPE TY_T_VBPA " SOC : 5113
+                                          FP_LT_TVV1T TYPE TY_T_TVV1T
+                                          FP_LT_TVGRT TYPE TY_T_TVGRT
+                                          FP_IT_VBPA TYPE TY_T_VBPA " SOC : 5113
                                         FP_LT_T052  TYPE TY_T_T052
                                         LT_TVKBT    TYPE TY_T_TVKBT
                                CHANGING FP_LW_FINAL TYPE TY_FINAL.
@@ -1235,7 +1226,6 @@ FORM SUB_ONE_TIME_CALCULATION  USING    FP_LW_BSID TYPE TY_BSID
         LV_READ_NAME TYPE THEAD-TDNAME,
         LW_TVV1T     TYPE TY_TVV1T,
         LW_TVGRT     TYPE TY_TVGRT,
-        LW_BKPF      TYPE TY_BKPF,
         LW_T052      TYPE TY_T052,
         LW_FAEDE     TYPE FAEDE,
         LW_FAEDE_IM  TYPE FAEDE.
@@ -1269,32 +1259,28 @@ FORM SUB_ONE_TIME_CALCULATION  USING    FP_LW_BSID TYPE TY_BSID
 
     FP_LW_FINAL-BSCHL = LW_ACDOCA-BSCHL.
   ENDIF.
-  READ TABLE FP_LT_BKPF INTO LW_BKPF WITH KEY BUKRS = FP_LW_BSID-BUKRS
-                                                GJAHR = FP_LW_BSID-GJAHR
-                                                BELNR  = FP_LW_BSID-BELNR.
-  IF SY-SUBRC = 0.
-    FP_LW_FINAL-AWKEY = LW_BKPF-AWKEY.   "INV  "In below calculation this is used
+  FP_LW_FINAL-AWKEY = FP_LW_BSID-AWKEY.   "INV  "In below calculation this is used
 
 ******************************************* SOC : 5113 ****************************************
-    READ TABLE FP_IT_VBPA INTO WA_VBPA WITH KEY FP_LW_FINAL-AWKEY BINARY SEARCH.
-    IF SY-SUBRC = 0.
-      FP_LW_FINAL-NAME1 = WA_VBPA-NAME1.
-      FP_LW_FINAL-SORTL = WA_VBPA-SORTL.
-    ENDIF.
+  READ TABLE FP_IT_VBPA INTO WA_VBPA WITH KEY FP_LW_FINAL-AWKEY BINARY SEARCH.
+  IF SY-SUBRC = 0.
+    FP_LW_FINAL-NAME1 = WA_VBPA-NAME1.
+    FP_LW_FINAL-SORTL = WA_VBPA-SORTL.
+  ENDIF.
 ******************************************* EOC : 5113 ****************************************
 
-    DATA: LV_VBELN TYPE VBAP-VBELN,
-          LV_POSNR TYPE VBAP-POSNR.
+  DATA: LV_VBELN TYPE VBAP-VBELN,
+        LV_POSNR TYPE VBAP-POSNR.
 
-    SELECT SINGLE A~WERKS B~KDMAT B~VBELN B~POSNR
-      FROM VBRP AS A
-      INNER JOIN VBAP AS B
-      ON B~VBELN = A~AUBEL
-      INTO ( FP_LW_FINAL-WERKS, FP_LW_FINAL-KDMAT, LV_VBELN, LV_POSNR )
-      WHERE A~VBELN = FP_LW_FINAL-AWKEY
-      AND B~POSNR = A~AUPOS.
+  SELECT SINGLE A~WERKS B~KDMAT B~VBELN B~POSNR
+    FROM VBRP AS A
+    INNER JOIN VBAP AS B
+    ON B~VBELN = A~AUBEL
+    INTO ( FP_LW_FINAL-WERKS, FP_LW_FINAL-KDMAT, LV_VBELN, LV_POSNR )
+    WHERE A~VBELN = FP_LW_FINAL-AWKEY
+    AND B~POSNR = A~AUPOS.
 
-      IF LV_VBELN IS NOT INITIAL AND LV_POSNR IS NOT INITIAL.
+    IF LV_VBELN IS NOT INITIAL AND LV_POSNR IS NOT INITIAL.
 
         SELECT SINGLE BSTKD IHREZ BSTDK
           FROM VBKD
