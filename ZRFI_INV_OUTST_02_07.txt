@@ -1,0 +1,133 @@
+*&--------------------------------------------------------------------&*
+* Author Name           : Ajeet Singh
+* Functional Owner      : Amresh misra
+* Request No            : ATDK907171
+* GAP ID                : BBD_FI_02_07
+* Creation Date         : 07.02.2018
+* Description           : Invoice wise outstanding report
+* Modif ID              :
+*&--------------------------------------------------------------------&*
+**----------Modification Log-------------------------------------------*
+************************************************************************
+*-Tr.No        Author         Date         Purpose------------------- *
+*ATDK921259  Nandagourav     21.12.2018   Adding clearing Document Type
+*ATDK921306  Nandagourav     22.12.2018   Checking all Clearing document Reveresd or not while calculating the Adjustment Amount
+*ATDK921705  Nandagourav      01.01.2019   Calculating OD Days
+*ATDK935898  Shashank Sharma  26.11.2019   OD Days from Doc Date
+*-------------------------------------Modification Log---------------------------------------------------*
+*||---Technical Name---|| Functional Name||---Dev-Id---|| Change Date ||TR  Number ||Reason for Change ||
+*||Soc by Riya Patel   || Mithilesh Agrawal || Devid-4453 || 25-08-2023 || ATDK989706 ||add BLART = 'SB' & AMOUNT RELAISED ||
+*||Soc by Jash Rajpara || Sainath Kalva     || Devid-     || 25-11-2024 || ATDK9A0AFC ||Perform Add    ||
+*||Soc by Satyen Trivedi || Hardik Nagaria  || Devid-7035 || 31-07-2025 ||Performance Improvement
+*&---------------------------------------------------------------------*
+*& Report ZRFI_INV_OUTST_02_07
+*&---------------------------------------------------------------------*
+REPORT zrfi_inv_outst_02_07.
+
+INCLUDE zrfi_inv_outst_02_07_top.
+
+INCLUDE zrfi_inv_outst_02_07_scr.
+
+INCLUDE zrfi_inv_outst_02_07_f00.
+
+AT SELECTION-SCREEN ON s_bukrs.
+  PERFORM sub_check_bukrs.
+
+AT SELECTION-SCREEN ON p_cdate.
+  PERFORM sub_check_cdate.
+
+*------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+  PERFORM set_varient.                             " set Varient Name
+*------------------------------------------------------------------*
+
+START-OF-SELECTION.
+                                                            "BOC 7035
+  IF c2 = 'X'.
+    PERFORM fill_customer.
+  ENDIF.
+                                                            "EOC 7035
+  IF c1 IS INITIAL.                     " Get data live
+    PERFORM authority_check.
+
+    IF sy-batch EQ abap_true.
+      p_cdate = sy-datum .
+    ENDIF."IF sy-batch EQ abap_true.
+
+    PERFORM sub_tab_sel_final_fill.  "Select the data and Fill the Final table
+
+    IF sy-batch EQ abap_true.
+      PERFORM upload_data_table.
+    ENDIF.
+  ELSE.
+    PERFORM get_data_from_tabl .        " Get data from table
+  ENDIF.
+
+
+END-OF-SELECTION.
+  IF gt_final IS NOT INITIAL .
+    IF p_back IS NOT INITIAL.
+      DATA : ls_crm_os TYPE zcrm_os_integrat.
+      DATA : ls_crm_os_old TYPE zcrm_os_int_old.
+      DATA : lv_num TYPE numc7.
+      SELECT * INTO TABLE @DATA(lt_crm_os) FROM zcrm_os_integrat
+               WHERE dom_exp = 'DOM'.
+      SELECT * INTO TABLE @DATA(lt_crm_os_old) FROM zcrm_os_int_old
+               WHERE dom_exp = 'DOM'.
+      CLEAR : ls_crm_os_old.
+
+      LOOP AT lt_crm_os_old INTO ls_crm_os_old WHERE dom_exp = 'DOM'.
+        DELETE zcrm_os_int_old FROM ls_crm_os_old.
+        CLEAR : ls_crm_os_old.
+      ENDLOOP.
+
+      CLEAR : ls_crm_os_old.
+      LOOP AT lt_crm_os INTO ls_crm_os WHERE dom_exp = 'DOM'.
+        MOVE-CORRESPONDING ls_crm_os TO ls_crm_os_old.
+        INSERT zcrm_os_int_old FROM ls_crm_os_old.
+        DELETE zcrm_os_integrat FROM ls_crm_os.
+        CLEAR : ls_crm_os.
+      ENDLOOP.
+      CLEAR : lv_num.
+      LOOP AT gt_final INTO DATA(ls_final).
+        CLEAR : lv_num.
+        SELECT SINGLE MAX( sr_no ) INTO lv_num FROM zcrm_os_integrat.
+        lv_num = lv_num + 1.
+        ls_crm_os-sr_no = lv_num.
+        ls_crm_os-manager = ls_final-manager.
+        ls_crm_os-brand = ls_final-kvgr1.
+        ls_crm_os-kunnr = ls_final-kunnr.
+        ls_crm_os-kam = ls_final-kam.
+        ls_crm_os-reg = ls_final-regio_txt.
+        ls_crm_os-tot_amt = ls_final-wrbtr.
+        ls_crm_os-name = ls_final-kname.
+        ls_crm_os-prctr = ls_final-prctr.
+        ls_crm_os-belnr = ls_final-belnr.
+        ls_crm_os-blart = ls_final-blart.
+        ls_crm_os-bldat = ls_final-bldat.
+        ls_crm_os-waers = ls_final-waers.
+        ls_crm_os-wrbtr = ls_final-wrbtr.
+        ls_crm_os-dmbtr = ls_final-dmbtr.
+        ls_crm_os-pay_terms = ls_final-pay_terms.
+        ls_crm_os-due_date = ls_final-due_date.
+        ls_crm_os-dom_exp = 'DOM'.
+        ls_crm_os-key_date = p_cdate.
+        INSERT zcrm_os_integrat FROM ls_crm_os.
+        CLEAR : ls_crm_os.
+      ENDLOOP.
+    ELSE.
+      "Pratik Kodiya for Portal: Outstanding details for Cust
+      IF sy-batch EQ abap_true.
+        PERFORM portal_outstanding.
+        PERFORM bi_outstanding_amt.  "Added by Surbhi Dadhich
+      ELSE.
+        IF ( sy-uname EQ 'RFCUSER' ).         "" added by jash rajpara dt: 27.11.2024
+          PERFORM exp_outstanding.
+        ELSE.
+          CALL SCREEN 9002.
+        ENDIF.
+      ENDIF."IF sy-batch EQ abap_false.
+    ENDIF.
+  ELSE.
+    MESSAGE 'No Data found' TYPE 'S' DISPLAY LIKE 'E'.
+  ENDIF.
