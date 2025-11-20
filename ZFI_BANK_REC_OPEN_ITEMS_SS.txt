@@ -1,0 +1,21 @@
+*-------------------------------------------------------------*
+*  Include ZFI_BANK_REC_OPEN_ITEMS_SS                         *
+*  Selection screen                                            *
+*-------------------------------------------------------------*
+
+SELECTION-SCREEN BEGIN OF BLOCK blk1 WITH FRAME TITLE text-t01.
+
+PARAMETERS: p_bukrs TYPE febko-bukrs OBLIGATORY,  " Company Code
+            p_azdat TYPE febko-azdat OBLIGATORY.  " Statement Date
+
+SELECT-OPTIONS: s_hbkid FOR febko-hbkid,          " House Bank
+                s_hktid FOR febko-hktid.          " Account ID
+
+SELECTION-SCREEN END OF BLOCK blk1.
+
+* Text elements:
+* text-t01 = 'Selection'.
+
+START-OF-SELECTION.
+  PERFORM get_data.
+  PERFORM display_alv.

@@ -1,0 +1,106 @@
+*-------------------------------------------------------------*
+*  Include ZFI_BANK_REC_OPEN_ITEMS_T01                        *
+*  Global types, data, constants                              *
+*-------------------------------------------------------------*
+
+TABLES: febko,
+        febep,
+        febre,
+        bseg.
+
+TYPE-POOLS: slis.
+
+*-----------------------*
+*  TYPES                *
+*-----------------------*
+
+TYPES: BEGIN OF ty_febko,
+         bukrs TYPE febko-bukrs,
+         azdat TYPE febko-azdat,
+         hbkid TYPE febko-hbkid,
+         hktid TYPE febko-hktid,
+         kukey TYPE febko-kukey,
+       END OF ty_febko.
+
+TYPES: BEGIN OF ty_febep,
+         kukey TYPE febep-kukey,
+         esnum TYPE febep-esnum,
+         belnr TYPE febep-belnr,
+         gjahr TYPE febep-gjahr,
+       END OF ty_febep.
+
+TYPES: BEGIN OF ty_bseg,
+         bukrs TYPE bseg-bukrs,
+         hkont TYPE bseg-hkont,
+         belnr TYPE bseg-belnr,
+         gjahr TYPE bseg-gjahr,
+         buzei TYPE bseg-buzei,
+         budat TYPE bseg-H_budat,
+         bldat TYPE bseg-H_bldat,
+         valut TYPE bseg-valut,
+         wrbtr TYPE bseg-wrbtr,
+         waers TYPE bseg-H_waers,
+         shkzg TYPE bseg-shkzg,
+         prctr TYPE bseg-prctr,
+         zuonr TYPE bseg-zuonr,
+       END OF ty_bseg.
+
+* Final ALV output line
+TYPES: BEGIN OF ty_out,
+         bukrs   TYPE bseg-bukrs,
+         hkont   TYPE bseg-hkont,
+         belnr   TYPE bseg-belnr,
+         gjahr   TYPE bseg-gjahr,
+         buzei   TYPE bseg-buzei,
+         hbkid   TYPE febko-hbkid,
+         hktid   TYPE febko-hktid,
+         budat   TYPE bseg-H_budat,
+         bldat   TYPE bseg-H_bldat,
+         valut   TYPE bseg-valut,
+         wrbtr   TYPE bseg-wrbtr,
+         waers   TYPE bseg-H_waers,
+         shkzg   TYPE bseg-shkzg,
+         prctr   TYPE bseg-prctr,
+         zuonr   TYPE bseg-zuonr,
+         remarks TYPE c LENGTH 255,
+       END OF ty_out.
+
+* KUKEY + ESNUM linked to document
+TYPES: BEGIN OF ty_kes_doc,
+         belnr TYPE belnr_d,
+         gjahr TYPE gjahr,
+         kukey TYPE febre-kukey,
+         esnum TYPE febre-esnum,
+       END OF ty_kes_doc.
+
+* Document → remarks
+TYPES: BEGIN OF ty_doc_remark,
+         belnr   TYPE belnr_d,
+         gjahr   TYPE gjahr,
+         remarks TYPE string,
+       END OF ty_doc_remark.
+
+*-----------------------*
+*  DATA                 *
+*-----------------------*
+
+DATA: gt_febko      TYPE STANDARD TABLE OF ty_febko      WITH EMPTY KEY,
+      gt_febep      TYPE STANDARD TABLE OF ty_febep      WITH EMPTY KEY,
+      gt_bseg       TYPE STANDARD TABLE OF ty_bseg       WITH EMPTY KEY,
+      gt_out        TYPE STANDARD TABLE OF ty_out        WITH EMPTY KEY,
+      gt_febep_doc  TYPE STANDARD TABLE OF ty_febep      WITH EMPTY KEY,
+      gt_doc_remark TYPE STANDARD TABLE OF ty_doc_remark WITH EMPTY KEY.
+
+* SALV reference
+DATA: gr_alv TYPE REF TO cl_salv_table.
+* KUKEY + ESNUM → concatenated FEBRE text (Payment Notes)
+TYPES: BEGIN OF ty_kes_text,
+         kukey TYPE febre-kukey,
+         esnum TYPE febre-esnum,
+         text  TYPE string,
+       END OF ty_kes_text.
+
+DATA: gt_kes_text TYPE STANDARD TABLE OF ty_kes_text WITH EMPTY KEY.
+
+DATA: lo_columns TYPE REF TO cl_salv_columns_table,
+        lo_column  TYPE REF TO cl_salv_column.

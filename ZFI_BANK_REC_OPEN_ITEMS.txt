@@ -1,0 +1,29 @@
+*&---------------------------------------------------------------------*
+*& Report ZFI_BANK_REC_OPEN_ITEMS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+*Purpose of the Report
+*&---------------------------------------------------------------------*
+*This report is designed to display open bank accounting items by combining
+* BSEG, FEBKO, FEBEP, and FEBRE data to provide a consolidated and enriched
+* view of all open postings that correspond to bank statement entries.
+*It enables the business user to:
+*Match FI open items with EBS (Electronic Bank Statement) details
+*Review assignment fields (ZUONR), document numbers, profit center, and amount
+*View bank-related metadata from FEBKO (House Bank, Account ID, Statement Date)
+*View Payment Notes / UTR / Reference Text extracted from FEBRE
+*Identify postings that require clearing or reconciliation
+*Export the report to Excel for reconciliation & audit
+*&---------------------------------------------------------------------*
+
+REPORT ZFI_BANK_REC_OPEN_ITEMS.
+
+* Top include: global data, types
+INCLUDE zfi_bank_rec_open_items_t01.   " T01
+
+* Selection screen
+INCLUDE zfi_bank_rec_open_items_ss.    " SS
+
+* Forms and main logic
+INCLUDE zfi_bank_rec_open_items_f01.   " F01
