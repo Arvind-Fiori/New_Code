@@ -89,7 +89,7 @@ DATA: gt_febko      TYPE STANDARD TABLE OF ty_febko      WITH EMPTY KEY,
       gt_bseg       TYPE STANDARD TABLE OF ty_bseg       WITH EMPTY KEY,
       gt_out        TYPE STANDARD TABLE OF ty_out        WITH EMPTY KEY,
       gt_febep_doc  TYPE STANDARD TABLE OF ty_febep      WITH EMPTY KEY,
-      gt_doc_remark TYPE STANDARD TABLE OF ty_doc_remark WITH EMPTY KEY.
+      gt_doc_remark TYPE HASHED TABLE OF ty_doc_remark WITH UNIQUE KEY belnr gjahr.
 
 * SALV reference
 DATA: gr_alv TYPE REF TO cl_salv_table.
@@ -100,7 +100,7 @@ TYPES: BEGIN OF ty_kes_text,
          text  TYPE string,
        END OF ty_kes_text.
 
-DATA: gt_kes_text TYPE STANDARD TABLE OF ty_kes_text WITH EMPTY KEY.
+DATA: gt_kes_text TYPE HASHED TABLE OF ty_kes_text WITH UNIQUE KEY kukey esnum.
 
 DATA: lo_columns TYPE REF TO cl_salv_columns_table,
         lo_column  TYPE REF TO cl_salv_column.

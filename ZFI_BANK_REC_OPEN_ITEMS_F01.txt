@@ -126,7 +126,10 @@ FORM get_febep.
   " 3) Read FEBRE for all (KUKEY, ESNUM)
   "    and build GT_KES_TEXT (concatenated Payment Notes)
   "----------------------------------------------------
-  SELECT *
+  SELECT kukey
+         esnum
+         rsnum
+         vwezw
     FROM febre
     INTO TABLE lt_febre
     FOR ALL ENTRIES IN lt_kes_uniq
@@ -136,30 +139,28 @@ FORM get_febep.
   CLEAR gt_kes_text.
   IF lt_febre IS NOT INITIAL.
 
-    SORT lt_febre BY kukey esnum rsnum  .
+    SORT lt_febre BY kukey esnum rsnum.
 
     LOOP AT lt_febre INTO ls_febre.
 
       READ TABLE gt_kes_text INTO ls_kes_text
-           WITH KEY kukey = ls_febre-kukey
-                    esnum = ls_febre-esnum.
+           WITH TABLE KEY kukey = ls_febre-kukey
+                              esnum = ls_febre-esnum.
 
       IF sy-subrc <> 0.
         CLEAR ls_kes_text.
         ls_kes_text-kukey = ls_febre-kukey.
         ls_kes_text-esnum = ls_febre-esnum.
         ls_kes_text-text  = ls_febre-vwezw.
-        APPEND ls_kes_text TO gt_kes_text.
+        INSERT ls_kes_text INTO TABLE gt_kes_text.
       ELSE.
         CONCATENATE ls_kes_text-text ls_febre-vwezw
           INTO ls_kes_text-text
           SEPARATED BY space.
-        MODIFY gt_kes_text FROM ls_kes_text INDEX sy-tabix.
+        MODIFY gt_kes_text FROM ls_kes_text.
       ENDIF.
 
     ENDLOOP.
-
-    SORT gt_kes_text BY kukey esnum.
 
   ENDIF.
 
@@ -171,33 +172,30 @@ FORM get_febep.
   LOOP AT gt_febep INTO ls_fep.
 
     READ TABLE gt_kes_text INTO ls_kes_text
-         WITH KEY kukey = ls_fep-kukey
-                  esnum = ls_fep-esnum
-         BINARY SEARCH.
+         WITH TABLE KEY kukey = ls_fep-kukey
+                                esnum = ls_fep-esnum.
     IF sy-subrc <> 0 OR ls_kes_text-text IS INITIAL.
       CONTINUE.
     ENDIF.
 
     READ TABLE gt_doc_remark INTO ls_doc_rem
-         WITH KEY belnr = ls_fep-belnr
-                  gjahr = ls_fep-gjahr.
+         WITH TABLE KEY belnr = ls_fep-belnr
+                                gjahr = ls_fep-gjahr.
 
     IF sy-subrc <> 0.
       CLEAR ls_doc_rem.
       ls_doc_rem-belnr   = ls_fep-belnr.
       ls_doc_rem-gjahr   = ls_fep-gjahr.
       ls_doc_rem-remarks = ls_kes_text-text.
-      APPEND ls_doc_rem TO gt_doc_remark.
+      INSERT ls_doc_rem INTO TABLE gt_doc_remark.
     ELSE.
       CONCATENATE ls_doc_rem-remarks ls_kes_text-text
         INTO ls_doc_rem-remarks
         SEPARATED BY space.
-      MODIFY gt_doc_remark FROM ls_doc_rem INDEX sy-tabix.
+      MODIFY gt_doc_remark FROM ls_doc_rem.
     ENDIF.
 
   ENDLOOP.
-
-  SORT gt_doc_remark BY belnr gjahr.
 
 
 ENDFORM.                    " GET_FEBEP
@@ -262,7 +260,6 @@ FORM build_output.
 
   SORT gt_febep_doc BY belnr gjahr.
   SORT gt_febko      BY kukey.
-  SORT gt_doc_remark BY belnr gjahr.
 
   LOOP AT gt_bseg INTO ls_bseg.
 
@@ -301,9 +298,8 @@ FORM build_output.
     ls_out-zuonr = ls_bseg-zuonr.
     " Map BELNR/GJAHR → Remarks via gt_doc_remark
     READ TABLE gt_doc_remark INTO ls_doc_rem
-         WITH KEY belnr = ls_bseg-belnr
-                  gjahr = ls_bseg-gjahr
-         BINARY SEARCH.
+         WITH TABLE KEY belnr = ls_bseg-belnr
+                                gjahr = ls_bseg-gjahr.
 
     IF sy-subrc = 0 AND ls_doc_rem-remarks IS NOT INITIAL.
       ls_out-remarks = ls_doc_rem-remarks.
